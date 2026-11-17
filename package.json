@@ -41,7 +41,7 @@
     "typecheck": "node scripts/write-images.mjs && tsc -p tsconfig.json --noEmit",
     "test": "npm run build && node --test test/*.test.mjs",
     "test:docker": "npm run build && node --test --test-concurrency=2 test/docker/*.test.mjs",
-    "test:browser": "npm run build && node --test test/browser/*.test.mjs",
+    "test:browser": "npm run build && node --test --test-concurrency=1 test/browser/*.test.mjs",
     "test:transfer": "npm run build && node scripts/check-release-transfer.mjs local",
     "test:package": "npm run build && node scripts/check-package.mjs",
     "check": "npm run typecheck && npm test",

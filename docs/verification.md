@@ -354,7 +354,7 @@ The repository remains private and npm publication has not occurred.
 - A read-only public registry lookup on November 17 returned E404 for `js-ship`.
   This does not reserve the name or establish account publishing rights.
 
-## Failure recovery milestone (local)
+## Failure recovery milestone
 
 - Three lifecycle cases passed, including the new shell/npm process-tree case
   with 12-second app/child shutdown handlers. The slow case uses the generated
@@ -372,7 +372,18 @@ The repository remains private and npm publication has not occurred.
   first-time initialization and application-driver reconnects are not covered.
 - All 126 unit/boundary checks and the installed 110-file tarball passed under
   Node 22.23.5. Runtime implementation/templates did not change. The Docker suite
-  now contains 36 cases across sixteen suites; remote verification is pending.
+  now contains 36 cases across sixteen suites.
+- The [quality matrix](https://github.com/ship-ecosystem/js-ship/actions/runs/44131608770)
+  passed on Linux/macOS 15/Windows across Node 22/24/26, including package and
+  declaration checks and npm audit. The MongoDB and lifecycle jobs passed in
+  [Docker CI](https://github.com/ship-ecosystem/js-ship/actions/runs/44131608698);
+  all 36 Docker cases passed. The separate browser job passed five cases but
+  failed React's initial subpath load. Its retained trace showed
+  `net::ERR_NETWORK_CHANGED` on the React refresh preamble, followed by the React
+  plugin's missing-preamble error. Browser files were creating/removing Docker
+  networks concurrently; they now run sequentially to avoid overlapping network
+  setup with a different fixture's active browser. Verification of this harness
+  change is pending.
 - Added [startup, shutdown and recovery](recovery.md) with operational steps and
   the remaining scope: disk/host/daemon failure, backup restoration, other database
   recovery, version upgrades and Docker behavior beyond Linux.

@@ -58,7 +58,7 @@ administration and coordinate the corresponding environment change. See
 
 ## Slow application and worker shutdown
 
-Generated app/worker services have a 60-second Compose stop grace period. Their
+Generated Node app/worker services have a 60-second Compose stop grace period. Their
 Node entrypoint forwards termination to the command's process group and allows
 shell/npm descendants to finish draining. Handle `SIGTERM`, stop taking new work,
 close listeners and finish or release work within that budget. After the grace
