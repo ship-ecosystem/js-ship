@@ -399,7 +399,7 @@ The repository remains private and npm publication has not occurred.
 
 The repository remains private and npm remains unpublished after this milestone.
 
-## Initialization and diagnostics milestone (local)
+## Initialization and diagnostics milestone
 
 - All 140 unit/boundary tests passed under Node 22.23.5. New checks cover
   preflight-only planning, cancellation, flag/prompt parity, explicit flag
@@ -428,9 +428,17 @@ The repository remains private and npm remains unpublished after this milestone.
   [npm preview](https://github.com/ship-ecosystem/js-ship/actions/runs/44182468238)
   passed and skipped publication. The
   [cross-runner transfer](https://github.com/ship-ecosystem/js-ship/actions/runs/44182468291)
-  passed. The initial Docker run passed Chromium, MongoDB/doctor and other
-  completed suites, but the SSR job ran beyond fifteen minutes without visible
-  test output. The workflow now streams output through tee with Bash pipefail and
-  keeps a step timeout shorter than the job timeout so failure evidence can be
-  retained. A fresh full Docker run will verify the code and this CI change.
+  passed. All 36 Docker cases and all six Chromium cases passed in
+  [Docker/browser CI](https://github.com/ship-ecosystem/js-ship/actions/runs/44182468189)
+  at product revision `b115af0`.
+- The initial SSR job completed successfully after more than fifteen minutes.
+  While it was finishing, the workflow was updated to stream test output through
+  tee with Bash pipefail, with step timeouts shorter than job timeouts to leave
+  time to retain failure evidence. The instrumentation change does not alter
+  product code or test assertions. The fresh
+  [Docker/browser CI](https://github.com/ship-ecosystem/js-ship/actions/runs/44185267523)
+  passed all 36 Docker cases and six Chromium cases, including the SSR suite in
+  5m18s; [quality CI](https://github.com/ship-ecosystem/js-ship/actions/runs/44185267257)
+  passed the platform matrix again at `a565e87`. This final follow-up only records
+  results. The repository remains private and npm remains unpublished.
   Repository visibility and npm publication remain unchanged.
