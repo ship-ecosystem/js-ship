@@ -19,10 +19,10 @@ test('runtime floor rejects old, unsupported and prerelease Node versions; accep
   for (const version of ['20.19.0', '23.0.0', '27.0.0', '24', '24.22.3-rc.1', '24.22.3\n', 'garbage']) assert.ok(nodeRuntimeProblem(version, NODE_MINIMUMS));
 });
 test('catalog drives package engines, Docker selections and generated guard policy', async () => {
-  const catalog = JSON.parse(await readFile('images/compose.yaml', 'utf8'));
+  const catalog = await readFile('images/Dockerfile', 'utf8');
   for (const [key, image] of Object.entries(IMAGES)) {
     assert.match(image, /@sha256:[a-f0-9]{64}$/);
-    assert.equal(image, catalog.services[key].image);
+    assert.ok(catalog.split(/\r?\n/).includes(`FROM ${image} AS ${key}`));
   }
   const pkg = JSON.parse(await readFile('package.json', 'utf8'));
   assert.equal(pkg.engines.node, Object.values(NODE_MINIMUMS).map(value => `^${value}`).join(' || '));

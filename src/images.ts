@@ -1,4 +1,4 @@
-// Generated from images/compose.yaml by npm run build. Edit the catalog instead.
+// Generated from images/Dockerfile by npm run build. Edit the catalog instead.
 export const IMAGES = {
   "node22": "node:22.23.5-bookworm-slim@sha256:e9f565d32859f0cbfb52125eafe8be39390f24dac302dc3cdf566e8ba3ab21ee",
   "node24": "node:24.22.3-bookworm-slim@sha256:dc26ae92c9fb15cf6b1d63e20f0944b2efe0f115b20e00be48fb23fceb061c54",

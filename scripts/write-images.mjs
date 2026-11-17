@@ -1,11 +1,17 @@
 import { readFile, writeFile } from 'node:fs/promises';
 const root = new URL('../', import.meta.url);
-const catalog = JSON.parse(await readFile(new URL('images/compose.yaml', root), 'utf8'));
+const catalog = {};
+for (const line of (await readFile(new URL('images/Dockerfile', root), 'utf8')).split(/\r?\n/)) {
+  if (!line.trim() || line.startsWith('#')) continue;
+  const match = /^FROM (\S+) AS ([a-z0-9]+)$/.exec(line);
+  if (!match || Object.hasOwn(catalog, match[2])) throw new Error('Expected unique FROM <image> AS <key> catalog entries.');
+  catalog[match[2]] = match[1];
+}
 const keys = ['node22', 'node24', 'node26', 'nginx', 'postgres', 'redis', 'mongo'];
-if (JSON.stringify(Object.keys(catalog.services).sort()) !== JSON.stringify([...keys].sort())) throw new Error('Review the runtime policy before changing the image catalog keys.');
+if (JSON.stringify(Object.keys(catalog).sort()) !== JSON.stringify([...keys].sort())) throw new Error('Review the runtime policy before changing the image catalog keys.');
 const images = {}, floors = {};
 for (const key of keys) {
-  const image = catalog.services[key].image;
+  const image = catalog[key];
   if (typeof image !== 'string' || !/^[a-z0-9][a-z0-9/._-]*:[A-Za-z0-9._-]+@sha256:[a-f0-9]{64}(?![\s\S])/.test(image)) throw new Error(`Invalid digest-pinned image: ${key}`);
   images[key] = image;
   if (key.startsWith('node')) {
@@ -18,7 +24,7 @@ async function writeChanged(path, text) {
   const url = new URL(path, root);
   if (await readFile(url, 'utf8').catch(() => '') !== text) await writeFile(url, text);
 }
-await writeChanged('src/images.ts', `// Generated from images/compose.yaml by npm run build. Edit the catalog instead.\nexport const IMAGES = ${JSON.stringify(images, null, 2)} as const;\nexport const NODE_MINIMUMS: Readonly<Record<string, string>> = ${JSON.stringify(floors, null, 2)};\n`);
+await writeChanged('src/images.ts', `// Generated from images/Dockerfile by npm run build. Edit the catalog instead.\nexport const IMAGES = ${JSON.stringify(images, null, 2)} as const;\nexport const NODE_MINIMUMS: Readonly<Record<string, string>> = ${JSON.stringify(floors, null, 2)};\n`);
 const engines = { node: Object.values(floors).map(version => `^${version}`).join(' || ') };
 for (const file of ['package.json', 'package-lock.json']) {
   const data = JSON.parse(await readFile(new URL(file, root), 'utf8'));

@@ -27,10 +27,10 @@ need review; removing a supported Node major is a deliberate compatibility chang
 
 ## One image catalog
 
-`images/compose.yaml` is the source of default Node, Nginx, PostgreSQL, Redis and
-MongoDB image references. It uses JSON syntax, which is valid YAML, so both the
-build generator and Dependabot's Docker Compose manager can read it. Preserve
-that format when editing it. The file is a catalog, not a deployment stack.
+`images/Dockerfile` is the source of default Node, Nginx, PostgreSQL, Redis and
+MongoDB image references. Each `FROM <image> AS <key>` entry is read by the build
+generator and Dependabot's native Docker manager. Preserve that format when
+editing it. The file is a catalog, not an application build.
 
 Every reference includes a multi-platform manifest digest. Node entries additionally
 pin a full patch tag; infrastructure entries keep their existing version families.
@@ -55,7 +55,7 @@ application's selected container Node major.
 
 `.github/dependabot.yml` configures weekly npm development-tool and pinned GitHub
 Action updates, plus daily image-catalog checks. Container major-version updates
-are excluded from routine proposals. There is no automatic merge or deployment.
+are excluded from routine proposals; MongoDB minor-family upgrades are also excluded. There is no automatic merge or deployment.
 Digest changes and database image refreshes still require review.
 
 This configuration becomes active when committed to the repository's default
