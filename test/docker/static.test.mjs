@@ -8,6 +8,7 @@ import { setTimeout as delay } from 'node:timers/promises';
 import { run } from '../../dist/process.js';
 import { composePrefix } from '../../dist/project.js';
 import { readConfig } from '../../dist/config.js';
+import { lockFixture } from './support.mjs';
 
 async function responds(url) {
   for (let attempt = 0; attempt < 40; attempt++) {
@@ -22,7 +23,16 @@ test('VitePress static release serves subpaths, assets and genuine 404s without 
   const cli = resolve('dist/cli.js');
   const name = `ship-static-test-${randomBytes(5).toString('hex')}`;
   let cfg, destination;
-  const ship = args => run([process.execPath, cli, ...args], root, { env: { ...process.env, APP_PORT: '0' } });
+  const ship = async args => {
+    try { return await run([process.execPath, cli, ...args], root, { env: { ...process.env, APP_PORT: '0' } }); }
+    catch (error) {
+      if (cfg) {
+        const { prefix } = await composePrefix(root, cfg, 'development');
+        await run([...prefix, 'logs', '--tail', '50'], root).catch(() => {});
+      }
+      throw error;
+    }
+  };
   t.after(async () => {
     if (cfg) {
       const { prefix } = await composePrefix(root, cfg, 'development');
@@ -40,9 +50,9 @@ test('VitePress static release serves subpaths, assets and genuine 404s without 
   await writeFile(join(root, 'docs/guide.md'), '# Ship guide fixture\n\nA generated HTML page.\n');
   await writeFile(join(root, 'package.json'), JSON.stringify({ private: true, type: 'module', packageManager: 'npm@12.2.2',
     devDependencies: { vitepress: '1.6.4' }, scripts: { 'docs:dev': 'vitepress dev docs', 'docs:build': 'vitepress build docs' } }));
-  // Resolve the fixture lockfile in Docker; no application dependencies on the host.
-  await run(['docker', 'run', '--rm', '--mount', `type=bind,source=${root},target=/app`, '--workdir', '/app', 'node:24-bookworm-slim',
-    'sh', '-c', 'npm install --global npm@12.2.2 --no-audit --no-fund && npm install --package-lock-only --ignore-scripts --no-audit --no-fund'], root);
+  // Match the other fixtures: metadata created as container root is recreated
+  // as the host test user before the non-root development install.
+  await lockFixture(root);
   await ship(['init', '--no-interaction']);
   cfg = { ...await readConfig(root), name, basePath: '/handbook/', publishPorts: true };
   await writeFile(join(root, 'ship.json'), JSON.stringify(cfg));
