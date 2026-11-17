@@ -1,6 +1,6 @@
 # Verification
 
-Verified on November 16–17, 2026 with Node 22.23.3, npm 11.20.0,
+Verified on November 16–18, 2026 with Node 22.23.3, npm 11.20.0,
 TypeScript 5.9.3, Docker Engine 29.9.2 and Compose 5.6.1 on Linux.
 The granted execution permission enabled Docker, subprocess and socket tests.
 The runtime-policy milestone uses an isolated Node 22.23.5 runtime from npm exec;
@@ -422,5 +422,15 @@ The repository remains private and npm remains unpublished after this milestone.
 - Added [initialization and diagnostics](usability.md), updated the recovery guide
   and recorded the generated models' Compose 2.24.0+ requirement. Shared planning
   and generated-file validation retain the existing non-interactive behavior.
-  Remote verification for this revision is pending. Repository visibility and npm
-  publication remain unchanged.
+- [Quality CI](https://github.com/ship-ecosystem/js-ship/actions/runs/44182468180)
+  passed on Linux/macOS 15/Windows across Node 22/24/26, including installed-package
+  and declaration checks and npm audit. The
+  [npm preview](https://github.com/ship-ecosystem/js-ship/actions/runs/44182468238)
+  passed and skipped publication. The
+  [cross-runner transfer](https://github.com/ship-ecosystem/js-ship/actions/runs/44182468291)
+  passed. The initial Docker run passed Chromium, MongoDB/doctor and other
+  completed suites, but the SSR job ran beyond fifteen minutes without visible
+  test output. The workflow now streams output through tee with Bash pipefail and
+  keeps a step timeout shorter than the job timeout so failure evidence can be
+  retained. A fresh full Docker run will verify the code and this CI change.
+  Repository visibility and npm publication remain unchanged.

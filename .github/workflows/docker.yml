@@ -58,7 +58,9 @@ jobs:
           docker version
           docker compose version
       - name: Run isolated Docker suite
-        run: node --test test/docker/${{ matrix.suite }}.test.mjs > docker-test.log 2>&1
+        timeout-minutes: 22
+        shell: bash
+        run: node --test test/docker/${{ matrix.suite }}.test.mjs 2>&1 | tee docker-test.log
       - name: Show test output
         if: always()
         run: cat docker-test.log
@@ -91,7 +93,9 @@ jobs:
       - name: Keep new browser fixture interfaces IPv4-only
         run: sudo sysctl -w net.ipv6.conf.default.disable_ipv6=1
       - name: Run browser HMR checks
-        run: npm run test:browser > browser-test.log 2>&1
+        timeout-minutes: 18
+        shell: bash
+        run: npm run test:browser 2>&1 | tee browser-test.log
       - name: Show browser output
         if: always()
         run: if [ -f browser-test.log ]; then cat browser-test.log; fi
