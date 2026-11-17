@@ -373,24 +373,28 @@ The repository remains private and npm publication has not occurred.
 - All 126 unit/boundary checks and the installed 110-file tarball passed under
   Node 22.23.5. Runtime implementation/templates did not change. The Docker suite
   now contains 36 cases across sixteen suites.
-- The [quality matrix](https://github.com/ship-ecosystem/js-ship/actions/runs/44131608770)
+- Final [quality CI](https://github.com/ship-ecosystem/js-ship/actions/runs/44135361777)
   passed on Linux/macOS 15/Windows across Node 22/24/26, including package and
-  declaration checks and npm audit. The MongoDB and lifecycle jobs passed in
-  [Docker CI](https://github.com/ship-ecosystem/js-ship/actions/runs/44131608698);
-  all 36 Docker cases passed. The separate browser job passed five cases but
-  failed React's initial subpath load. Its retained trace showed
-  `net::ERR_NETWORK_CHANGED` on the React refresh preamble, followed by the React
-  plugin's missing-preamble error. Browser files were creating/removing Docker
-  networks concurrently; they now run sequentially to avoid overlapping network
-  setup with a different fixture's active browser. Verification of this harness
-  change passed all four HMR cases on the next runner, but Next's final 404
-  navigation still hit `ERR_NETWORK_CHANGED`. Sequencing alone was insufficient.
-  The ephemeral browser CI runner now disables IPv6 on newly created interfaces
-  before starting fixtures, avoiding Docker veth link-local address notifications
-  during IPv4 loopback requests. This CI-only setup follows the same failure mode
-  documented in [Ghost's browser tests](https://github.com/TryGhost/Ghost/blob/main/e2e/README.md#sign-in-page-never-renders-on-linux).
-  Browser assertions and retry behavior are unchanged. IPv6 coverage is not
-  established by these fixtures. Verification of this runner setup is pending.
+  declaration checks and npm audit. All 36 Docker cases and all six Chromium
+  cases passed in [Docker/browser CI](https://github.com/ship-ecosystem/js-ship/actions/runs/44135361789)
+  at revision `be8e2bf`. The [npm preview](https://github.com/ship-ecosystem/js-ship/actions/runs/44133923882)
+  and [cross-runner transfer](https://github.com/ship-ecosystem/js-ship/actions/runs/44133923925)
+  passed at `5f2e3b3`; the subsequent change only adjusted browser CI setup/docs.
+- Two earlier browser jobs hit `net::ERR_NETWORK_CHANGED`: first on React's
+  refresh preamble, then on a Next 404 navigation. Serial browser files removed
+  overlapping fixture setup but did not eliminate the failure. The ephemeral
+  browser CI runner now disables IPv6 on newly created interfaces before fixtures
+  start, avoiding Docker veth link-local address notifications during IPv4 loopback
+  requests. The same failure mode is documented in
+  [Ghost's browser tests](https://github.com/TryGhost/Ghost/blob/main/e2e/README.md#sign-in-page-never-renders-on-linux).
+  Browser assertions and retry behavior are unchanged; IPv6 coverage is not
+  established by these fixtures. Local host network settings were not changed.
+- An additional local sequential browser run passed React root and subpath HMR.
+  Fixture dependency downloads were slow; after the full CI browser suite passed,
+  the redundant local run was interrupted and its active fixture cleaned up.
+  This partial local run is not counted as a six-case browser pass.
 - Added [startup, shutdown and recovery](recovery.md) with operational steps and
   the remaining scope: disk/host/daemon failure, backup restoration, other database
   recovery, version upgrades and Docker behavior beyond Linux.
+
+The repository remains private and npm remains unpublished after this milestone.
