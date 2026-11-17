@@ -6,7 +6,9 @@ and TypeScript applications, following the PHP and Python Ship workflow.
 **Status: early development. Not published or production-ready.**
 The npm package name is `js-ship`; publishing remains blocked with `private: true`
 until release checks are complete. Once published, install it with
-`npm i js-ship` and run `npx ship --help`.
+`npm i js-ship` and run `npx ship --help`. The first public tests will use
+`npm i js-ship@next`; see [npm release preparation](docs/npm-release.md) and
+[the changelog](CHANGELOG.md).
 
 Implemented now: all fourteen requested framework adapters, generic Node apps,
 pinned npm/pnpm workflows, PostgreSQL, Redis, MongoDB, named instances, production

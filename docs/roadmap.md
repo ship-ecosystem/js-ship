@@ -110,9 +110,11 @@ The development repository remains private and the npm package remains unpublish
 - Root npm/pnpm workspace installs, explicit app/build order, isolated development
   dependency volumes and layout-preserving Node/static packaging implemented.
   Dedicated isolated-SSR workspace layouts and minimal dependency closures remain.
-- npm release ownership, provenance/trusted publishing and changelog; the selected
-  package name is `js-ship`, and the private GitHub repository and package
-  repository metadata are configured.
+- Changelog, npm metadata checks and a preview/explicit-prerelease publishing
+  workflow prepared; it retains the installed-package-tested artifact and uses
+  OIDC for publication. npm ownership bootstrap, the GitHub `npm` environment
+  and the package trusted-publisher settings remain account-side release steps.
+  See [npm release preparation](npm-release.md). The name remains `js-ship`.
 - Optional Mutagen integration and richer doctor recovery hints.
 
 Current local results and their limits are recorded in [verification](verification.md).

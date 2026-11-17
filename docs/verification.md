@@ -323,3 +323,24 @@ passed on Linux, macOS 15 and Windows across Node 22/24/26, including installed
 package and declaration checks, generated-artifact checks and the audit job.
 Windows explicitly skips the existing symlink boundary case; Linux/macOS run it.
 The repository remains private and npm publication has not occurred.
+
+## npm prerelease preparation
+
+- Added an Unreleased changelog, explicit public-registry/`next` metadata and a
+  documented ownership/bootstrap and trusted-publisher setup path. The manifest
+  remains private at `0.1.0-dev.0`; no npm credentials or publishing settings have
+  been changed.
+- All 126 local unit/boundary tests passed under Node 22.23.5, including rejection
+  of private/mismatched repository identities, wrong tags, development/stable or
+  malformed versions, inconsistent lock metadata and missing release notes.
+- Offline preview passed; publish preflight rejected the current private manifest.
+  Installed CLI/API/declaration checks passed for the 109-file tarball. The exact
+  tested tarball can now be retained, and package inspection checks allowed roots,
+  credential-file paths and changelog inclusion before installation.
+- Workflow/Dependabot YAML parsed locally. The new workflow's preview has read-only
+  permissions; its separately dispatched publication job uses OIDC and the tested
+  tarball without rebuilding. Remote preview verification is pending. Real OIDC
+  authorization, registry installation and provenance remain unverified until a
+  future authorized public release.
+- A read-only public registry lookup on November 17 returned E404 for `js-ship`.
+  This does not reserve the name or establish account publishing rights.

@@ -8,6 +8,9 @@ import { fileURLToPath } from 'node:url';
 const root = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 const npm = process.env.npm_execpath;
 if (!npm) throw new Error('Run through npm run test:package so the npm executable is known on every platform.');
+const args = process.argv.slice(2);
+if (args.length > 1) throw new Error('Usage: npm run test:package [-- OUTPUT_DIRECTORY]');
+const outputDirectory = args[0] ? resolve(args[0]) : undefined;
 const work = await mkdtemp(join(tmpdir(), 'ship-package-'));
 function run(args, cwd) {
   const result = spawnSync(process.execPath, args, { cwd, encoding: 'utf8', env: process.env });
@@ -18,6 +21,12 @@ function run(args, cwd) {
 try {
   const pkg = JSON.parse(await readFile(join(root, 'package.json'), 'utf8'));
   const packed = JSON.parse(run([npm, 'pack', '--ignore-scripts', '--json', '--pack-destination', work], root))[0];
+  const allowedRoots = new Set(['dist', 'templates', 'schema', 'docs', 'package.json', 'README.md', 'LICENSE.md', 'SECURITY.md', 'CHANGELOG.md']);
+  for (const entry of packed.files) {
+    assert.ok(allowedRoots.has(entry.path.split('/')[0]), `Unexpected package file: ${entry.path}`);
+    assert.doesNotMatch(entry.path, /(?:^|\/)(?:\.env(?:\.|$)|\.npmrc$|\.ship-secrets(?:\/|$))/);
+  }
+  assert.ok(packed.files.some(entry => entry.path === 'CHANGELOG.md'));
   const consumer = join(work, 'consumer'), app = join(work, 'app'), site = join(work, 'gatsby'), workspace = join(work, 'workspace');
   await mkdir(consumer);
   await writeFile(join(consumer, 'package.json'), '{"private":true,"type":"module"}');
@@ -108,6 +117,10 @@ assert.equal(JSON.parse(await readFile('ship/.gatsby-static.json', 'utf8')).stat
 assert.match(await readFile('ship/nginx.conf', 'utf8'), /X-Content-Type-Options/);
 `);
   run([verify, app, site, workspace, custom], consumer);
+  if (outputDirectory) {
+    await mkdir(outputDirectory, { recursive: true });
+    await cp(join(work, packed.filename), join(outputDirectory, 'js-ship.tgz'), { force: false, errorOnExist: true });
+  }
   console.log(`Installed tarball verified: ${pkg.name}@${pkg.version} (${packed.entryCount} files).`);
 } finally {
   await rm(work, { recursive: true, force: true });

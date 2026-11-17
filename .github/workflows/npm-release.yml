@@ -1,0 +1,96 @@
+name: npm prerelease
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/npm-release.yml'
+      - 'scripts/check-npm-release.mjs'
+      - 'scripts/npm-release-policy.mjs'
+      - 'scripts/check-package.mjs'
+      - 'test/npm-release.test.mjs'
+      - 'package*.json'
+      - 'CHANGELOG.md'
+  pull_request:
+    paths:
+      - '.github/workflows/npm-release.yml'
+      - 'scripts/check-npm-release.mjs'
+      - 'scripts/npm-release-policy.mjs'
+      - 'scripts/check-package.mjs'
+      - 'test/npm-release.test.mjs'
+      - 'package*.json'
+      - 'CHANGELOG.md'
+  workflow_dispatch:
+    inputs:
+      publish:
+        description: 'Publish a prepared prerelease tag to npm next (false only previews)'
+        type: boolean
+        required: true
+        default: false
+
+permissions:
+  contents: read
+
+concurrency:
+  group: npm-release-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  package:
+    name: Validate and test the npm artifact
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6
+        with:
+          node-version: '24'
+          check-latest: true
+          package-manager-cache: false
+      - name: Preview release metadata
+        if: ${{ !inputs.publish }}
+        run: npm run release:check
+      - name: Validate explicit publication request
+        if: ${{ github.event_name == 'workflow_dispatch' && inputs.publish }}
+        run: npm run release:check -- --publish
+        env:
+          SHIP_REPOSITORY_PRIVATE: ${{ github.event.repository.private }}
+      - run: npm ci
+      - run: npm run check
+      - name: Test and retain the exact tarball
+        run: npm run test:package -- "$RUNNER_TEMP/npm-package"
+      - name: Check generated files
+        run: git diff --exit-code -- src/images.ts schema/ship.schema.json package.json package-lock.json
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: npm-package
+          path: ${{ runner.temp }}/npm-package/js-ship.tgz
+          if-no-files-found: error
+          retention-days: 7
+
+  publish:
+    name: Publish the verified prerelease
+    if: ${{ github.event_name == 'workflow_dispatch' && inputs.publish && github.repository == 'ship-ecosystem/js-ship' && !github.event.repository.private && startsWith(github.ref, 'refs/tags/v') }}
+    needs: package
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    environment: npm
+    permissions:
+      contents: read
+      id-token: write
+    steps:
+      # No checkout or rebuild: publish exactly the installed-package-tested tarball.
+      - uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6
+        with:
+          node-version: '24'
+          check-latest: true
+          registry-url: 'https://registry.npmjs.org/'
+          package-manager-cache: false
+      - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4
+        with:
+          name: npm-package
+          path: ${{ runner.temp }}/npm-package
+      - name: Publish using npm trusted publishing
+        run: npm publish "$RUNNER_TEMP/npm-package/js-ship.tgz" --ignore-scripts --provenance --access public --tag next --registry=https://registry.npmjs.org/
