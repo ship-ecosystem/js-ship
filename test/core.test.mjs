@@ -86,7 +86,7 @@ test('init validates before writing and preserves user edits and existing choice
   assert.match(await readFile(join(root, '.gitignore'), 'utf8'), /custom-rule/);
   assert.match(await readFile(join(root, '.dockerignore'), 'utf8'), /\.env\.\*/);
   await initProject(root, { force: true, database: 'none' });
-  assert.match(await readFile(join(root, 'ship/Dockerfile'), 'utf8'), /FROM node:/);
+  assert.match(await readFile(join(root, 'ship/Dockerfile'), 'utf8'), /FROM \$\{NODE_IMAGE\}/);
 });
 test('foreign lockfiles and workspaces are rejected explicitly', async t => {
   const root = await project(t);
@@ -160,7 +160,7 @@ test('deploy commands run once after infrastructure and are shell-quoted safely'
   assert.equal((script.match(/run --rm/g) ?? []).length, 1);
 });
 test('unsafe release tags are rejected', () => {
-  for (const tag of ['../escape', '/tmp/x', '.hidden', '-option', 'space tag']) assert.throws(() => validateTag(tag));
+  for (const tag of ['../escape', '/tmp/x', '.hidden', '-option', 'space tag', 'v1\n', 'v1\r\n']) assert.throws(() => validateTag(tag));
   validateTag('v1.0.0-rc.1');
 });
 test('release exports each image once, hashes archives and preserves existing releases', async t => {

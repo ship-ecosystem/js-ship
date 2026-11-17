@@ -142,7 +142,7 @@ test('Next.js detection selects its output adapter; explicit generic selection r
 
 test('package manager declarations must match config and lockfiles', async t => {
   assert.deepEqual(manifestManager({ packageManager: 'pnpm@12.21.0+sha512.abcd' }), { name: 'pnpm', version: '12.21.0' });
-  for (const value of ['pnpm@latest', 'npm@^12', 'npm@01.2.3', 'bun@1.0.0', 'yarn@4.0.0', 12]) assert.throws(() => manifestManager({ packageManager: value }));
+  for (const value of ['npm@12.2.2\n', 'pnpm@latest', 'npm@^12', 'npm@01.2.3', 'bun@1.0.0', 'yarn@4.0.0', 12]) assert.throws(() => manifestManager({ packageManager: value }));
   const root = await fixture(t, { packageManager: 'pnpm@12.21.0', scripts: { dev: 'node app.mjs', start: 'node app.mjs' } }, 'pnpm');
   await assert.rejects(initProject(root, { packageManagerVersion: '10.0.0' }), /conflicts/);
   assert.ok(!(await readdir(root)).includes('ship'));

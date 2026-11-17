@@ -2,13 +2,13 @@ import { readFile, access } from "node:fs/promises";
 import { basename, resolve } from "node:path";
 import { ConfigError } from "./errors.js";
 import type { Command, ProjectManifest, ShipConfig } from "./contracts.js";
+import { NODE_MINIMUMS } from "./images.js";
 import { DEFAULT_NPM_VERSION, EXACT_VERSION } from "./versions.js";
 
-export const NAME = /^[a-z][a-z0-9]*(?:[-_][a-z0-9]+)*$/;
-export const INSTANCE = /^[a-z][a-z0-9_]*$/;
-export const RESERVED = new Set(["init", "up", "down", "exec", "shell", "logs", "db", "config:test", "doctor", "build", "release", "npm", "pnpm", "app"]);
-const FIELDS = new Set(["$schema", "framework", "deployment", "serverEntry", "runtimeFiles", "angularProject", "mongodbMode", "node", "name", "packageManager", "packageManagerVersion", "scripts", "port", "outputDirectory", "staticRouting", "basePath", "services", "additionalServices", "serviceNames", "externalNetwork", "publishPorts", "processes", "deployCommands"]);
-export const safeRelativePath = (value: unknown): value is string => typeof value === "string" && /^[A-Za-z0-9_.-]+(?:\/[A-Za-z0-9_.-]+)*$/.test(value) && !value.split("/").some(p => p === "." || p === "..");
+import { NAME, INSTANCE, RESERVED, RELATIVE_PATH, SCRIPT_NAME, BASE_PATH, NETWORK_NAME, ENV_NAME, PUBLIC_PREFIX } from "./config-rules.js";
+export { NAME, INSTANCE, RESERVED } from "./config-rules.js";
+const FIELDS = new Set(["$schema", "extensions", "workspace", "build", "framework", "deployment", "serverEntry", "runtimeFiles", "angularProject", "mongodbMode", "node", "name", "packageManager", "packageManagerVersion", "scripts", "port", "outputDirectory", "staticRouting", "basePath", "services", "additionalServices", "serviceNames", "externalNetwork", "publishPorts", "processes", "deployCommands"]);
+export const safeRelativePath = (value: unknown): value is string => typeof value === "string" && RELATIVE_PATH.test(value);
 const isObject = (value: unknown): value is Record<string, unknown> => value !== null && typeof value === "object" && !Array.isArray(value);
 export async function exists(path: string): Promise<boolean> {
   try { await access(path); return true; } catch (error) {
@@ -41,11 +41,54 @@ export function parseConfig(data: unknown, root: string): ShipConfig {
   if (!isObject(data)) throw new ConfigError(["ship.json must contain an object."]);
   const problems: string[] = [];
   for (const key of Object.keys(data)) if (!FIELDS.has(key)) problems.push(`Unknown ship.json field: ${key}.`);
+  for (const [key, value] of Object.entries(data)) {
+    if (value === null && !["workspace", "serverEntry", "angularProject", "outputDirectory", "externalNetwork"].includes(key)) problems.push(`${key} cannot be null; omit it to use the default.`);
+  }
+  if (data.$schema !== undefined && (typeof data.$schema !== "string" || !data.$schema.trim())) problems.push("$schema must be a nonempty editor schema path or URL.");
   const text = (key: string, fallback: string): string => {
     const value = data[key] ?? fallback;
     if (typeof value !== "string" || !value) { problems.push(`${key} must be a nonempty string.`); return fallback; }
     return value;
   };
+  const extensionValues = data.extensions ?? [];
+  const extensions: string[] = [];
+  if (!Array.isArray(extensionValues)) problems.push("extensions must list relative JavaScript module paths.");
+  else for (const entry of extensionValues) {
+    const path = typeof entry === "string" ? entry.replace(/^\.\//, "") : "";
+    if (!safeRelativePath(path) || !/\.(?:mjs|cjs|js)(?![\s\S])/.test(path)) problems.push("Each extension must be a safe relative .mjs, .cjs or .js module path; URLs and TypeScript files are unsupported.");
+    else if (extensions.includes(path)) problems.push(`Duplicate extension module: ${path}.`);
+    else extensions.push(path);
+  }
+  let workspace: ShipConfig["workspace"] = null;
+  if (data.workspace !== undefined && data.workspace !== null) {
+    if (!isObject(data.workspace) || !safeRelativePath(data.workspace.app) ||
+      ["node_modules", "ship", ".git", ".ship-secrets"].includes(String(data.workspace.app).split("/")[0]!) ||
+      Object.keys(data.workspace).some(key => !["app", "buildDependencies"].includes(key))) problems.push("workspace needs a safe app directory and optional buildDependencies list.");
+    else {
+      const dependencies = data.workspace.buildDependencies ?? [];
+      if (data.workspace.buildDependencies === null || !Array.isArray(dependencies) || dependencies.some(path => !safeRelativePath(path)) || new Set(dependencies).size !== dependencies.length || dependencies.includes(data.workspace.app)) problems.push("workspace.buildDependencies must list unique safe package paths, excluding the selected app.");
+      else workspace = { app: data.workspace.app, buildDependencies: dependencies as string[] };
+    }
+  }
+  const build: ShipConfig["build"] = { publicEnv: {}, secrets: [], npmrc: false };
+  if (data.build !== undefined) {
+    if (!isObject(data.build)) problems.push("build must be an object.");
+    else {
+      for (const key of Object.keys(data.build)) if (!["publicEnv", "secrets", "npmrc"].includes(key)) problems.push(`Unknown build field: ${key}.`);
+      for (const [key, value] of Object.entries(data.build)) if (value === null) problems.push(`build.${key} cannot be null; omit it to use the default.`);
+      const publicEnv = data.build.publicEnv ?? {};
+      if (!isObject(publicEnv) || Object.entries(publicEnv).some(([key, value]) => !ENV_NAME.test(key) || typeof value !== "string" || value.includes("\0"))) {
+        problems.push("build.publicEnv must map non-reserved uppercase environment names to public string values.");
+      } else build.publicEnv = publicEnv as Record<string, string>;
+      const secrets = data.build.secrets ?? [];
+      if (!Array.isArray(secrets) || secrets.some(key => typeof key !== "string" || !ENV_NAME.test(key) || PUBLIC_PREFIX.test(key)) || new Set(secrets).size !== secrets.length) {
+        problems.push("build.secrets must list unique non-reserved uppercase environment names without framework public prefixes; files belong in .ship-secrets/NAME.");
+      } else build.secrets = secrets as string[];
+      if (data.build.npmrc !== undefined && typeof data.build.npmrc !== "boolean") problems.push("build.npmrc must be boolean; its file is .ship-secrets/npmrc.");
+      else build.npmrc = data.build.npmrc === true;
+      if (build.secrets.some(key => Object.hasOwn(build.publicEnv, key))) problems.push("A build variable cannot be both public and secret.");
+    }
+  }
   const framework = text("framework", "generic");
   const deployment = data.deployment ?? (["react", "vue", "svelte", "vitepress", "angular", "astro", "gatsby"].includes(framework) ? "static" : "node");
   if (deployment !== "node" && deployment !== "static") problems.push("deployment must be node or static.");
@@ -58,7 +101,7 @@ export function parseConfig(data: unknown, root: string): ShipConfig {
   const mongodbMode = data.mongodbMode ?? "replica-set";
   if (mongodbMode !== "standalone" && mongodbMode !== "replica-set") problems.push("mongodbMode must be standalone or replica-set.");
   const node = text("node", "24");
-  if (!/^(22|24|26)$/.test(node)) problems.push("node must be a supported major: 22, 24 or 26. Patch pins are not supported yet.");
+  if (!Object.hasOwn(NODE_MINIMUMS, node)) problems.push("node must be a supported major: 22, 24 or 26. Patch pins are not supported yet.");
   const name = text("name", projectName(root));
   if (!NAME.test(name)) problems.push("name must start with a lowercase letter and contain lowercase letters, digits, hyphens or underscores.");
   const packageManager = text("packageManager", "npm");
@@ -74,7 +117,7 @@ export function parseConfig(data: unknown, root: string): ShipConfig {
         const value = data.scripts[key];
         if (value === undefined) continue;
         if ((key === "build" || key === "start") && value === null) scripts[key] = null;
-        else if (typeof value !== "string" || !/^[a-zA-Z0-9:_-]+$/.test(value)) problems.push(`scripts.${key} must name a package.json script${key !== "dev" ? " or be null" : ""}.`);
+        else if (typeof value !== "string" || !SCRIPT_NAME.test(value)) problems.push(`scripts.${key} must name a package.json script${key !== "dev" ? " or be null" : ""}.`);
         else scripts = { ...scripts, [key]: value };
       }
     }
@@ -87,7 +130,7 @@ export function parseConfig(data: unknown, root: string): ShipConfig {
   const staticRouting = data.staticRouting ?? "spa";
   if (staticRouting !== "spa" && staticRouting !== "html") problems.push("staticRouting must be spa or html.");
   const basePath = data.basePath ?? "/";
-  if (typeof basePath !== "string" || !/^\/(?:[A-Za-z0-9_-][A-Za-z0-9_.-]*\/)*$/.test(basePath)) problems.push("basePath must be / or a safe URL prefix with leading and trailing slashes, such as /docs/.");
+  if (typeof basePath !== "string" || !BASE_PATH.test(basePath)) problems.push("basePath must be / or a safe URL prefix with leading and trailing slashes, such as /docs/.");
   const stringMap = (key: string): Record<string, string> => {
     const value = data[key] ?? {};
     if (!isObject(value) || Object.entries(value).some(([k, v]) => !NAME.test(k) || typeof v !== "string" || !NAME.test(v))) {
@@ -121,10 +164,10 @@ export function parseConfig(data: unknown, root: string): ShipConfig {
     else deployCommands.push(value);
   }
   const externalNetwork = data.externalNetwork ?? null;
-  if (externalNetwork !== null && (typeof externalNetwork !== "string" || !/^[A-Za-z0-9][A-Za-z0-9_.-]*$/.test(externalNetwork))) problems.push("externalNetwork must be a Docker network name.");
+  if (externalNetwork !== null && (typeof externalNetwork !== "string" || !NETWORK_NAME.test(externalNetwork))) problems.push("externalNetwork must be a Docker network name.");
   if (data.publishPorts !== undefined && typeof data.publishPorts !== "boolean") problems.push("publishPorts must be boolean.");
   if (problems.length) throw new ConfigError(problems);
-  return { framework, deployment: deployment as ShipConfig["deployment"], serverEntry: serverEntry as string | null,
+  return { extensions, workspace, build, framework, deployment: deployment as ShipConfig["deployment"], serverEntry: serverEntry as string | null,
     runtimeFiles: runtimeFiles as string[], angularProject: angularProject as string | null, mongodbMode: mongodbMode as ShipConfig["mongodbMode"],
     node, name, packageManager: packageManager as ShipConfig["packageManager"], packageManagerVersion,
     scripts, outputDirectory: outputDirectory as string | null, staticRouting: staticRouting as ShipConfig["staticRouting"], basePath: basePath as string, port: port as number, services, additionalServices,

@@ -4,8 +4,9 @@ Docker development environments and portable production releases for JavaScript
 and TypeScript applications, following the PHP and Python Ship workflow.
 
 **Status: early development. Not published or production-ready.**
-The working npm name is `@ship-ecosystem/js`; the package is private until its
-name, ownership and release checks are settled.
+The npm package name is `js-ship`; publishing remains blocked with `private: true`
+until release checks are complete. Once published, install it with
+`npm i js-ship` and run `npx ship --help`.
 
 Implemented now: all fourteen requested framework adapters, generic Node apps,
 pinned npm/pnpm workflows, PostgreSQL, Redis, MongoDB, named instances, production
@@ -14,15 +15,20 @@ output-file tests; representative framework builds and infrastructure also
 have live Docker coverage. Tested versions and remaining gaps are recorded in
 [verification notes](docs/verification.md). Modes and setup
 requirements are documented in [framework deployment modes](docs/frameworks.md)
-and [MongoDB](docs/mongodb.md). See
+and [MongoDB](docs/mongodb.md). Build variables, temporary secrets and private
+npm/pnpm registry configuration are covered in [build environment](docs/build-environment.md). See
 [the spec](docs/spec.md) and [roadmap](docs/roadmap.md) for their scope and status.
 
 ## Run from this checkout
 
-Requires Node 22+, npm, Docker Engine/Desktop and Compose v2. The application must
+Requires patched Node 22.23.5+, 24.22.3+ or 26.13.1+ within those majors, npm,
+Docker Engine/Desktop and Compose v2. The application must
 have one committed npm or pnpm lockfile. Init detects the framework and package
-manager from package.json and lockfiles without executing project code on the host.
-Yarn, Bun and workspaces (including pnpm-workspace.yaml) are not implemented yet.
+manager from package.json and lockfiles without running application scripts on the
+host. Explicitly configured [extensions](docs/extensions.md) do execute host code.
+npm/pnpm workspaces can select an app with `ship init --workspace apps/api` from
+the repository root. See [workspaces](docs/workspaces.md) for build order and
+packaging limits. Yarn and Bun are not implemented yet.
 
 ```sh
 npm ci
@@ -36,6 +42,13 @@ node dist/cli.js --project-directory /absolute/path/to/app up
 to try this workflow. It listens on `HOST` and `PORT` and uses Node watch mode.
 Generic apps must bind `0.0.0.0`; Ship supplies `HOST=0.0.0.0` and `PORT=3000`.
 Current init uses deterministic defaults and flags, with no interactive picker.
+
+## Configuration in your editor
+
+`ship init` links `ship.json` to a generated local `ship/ship.schema.json` for
+completion and validation without network access. Commit both files and run
+`ship config:test` for project-aware checks. See [configuration](docs/configuration.md)
+for the complete editor/tooling contract and schema export.
 
 ## Framework adapters
 
@@ -219,9 +232,22 @@ children to drain, including commands launched through npm or a shell. Interacti
 execs keep their existing terminal session. Crashed workers restart; manually
 stopped workers remain stopped until started again.
 
-This supervisor is published in template format 4. For an existing project,
+The supervisor was introduced in format 4; current extension-aware templates use
+format 8. For an existing project,
 review your generated-file edits and run `ship init --force` to refresh the
 entrypoint before using this package update.
+
+## Custom adapters and services
+
+[Extension API v1](docs/extensions.md) loads explicit local JavaScript modules into
+an isolated project registry. It supports validated framework/service definitions,
+owned volumes, namespaced templates and a generated schema with custom choices.
+
+## Runtime maintenance
+
+Default runtime images are digest-pinned, and Ship checks reviewed Node minimums
+on the host and during image builds. See [runtime maintenance](docs/runtime-maintenance.md)
+for updates, template refreshes and the [security policy](SECURITY.md).
 
 ## Development checks
 

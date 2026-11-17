@@ -2,8 +2,8 @@
 
 Status: initial implementation, November 2026. This document distinguishes the
 agreed product scope from the first executable milestone. PHP and Python packages
-remain unchanged. The working npm name is `@ship-ecosystem/js`; ownership and
-availability must be confirmed before publishing. `private: true` prevents an
+remain unchanged. The npm package name is `js-ship`; registry availability must be confirmed
+at publishing time. `private: true` prevents an
 accidental release.
 
 ## Product contract
@@ -13,20 +13,41 @@ under `ship/`, and exports portable production releases. Host commands run witho
 a shell and work toward native Linux, macOS and Windows support. Applications
 can use JavaScript or TypeScript; Ship itself is TypeScript compiled to ESM with
 declarations. Installing Ship requires no TypeScript runner. Initial host baseline:
-Node 22+. No runtime dependencies in the first milestone.
+Reviewed patched Node 22/24/26 releases (see runtime maintenance). No runtime dependencies in the first milestone.
 
 Keep the PHP/Python command vocabulary: `init`, `up`, `down`, `exec`, `shell`,
 `logs`, `db`, `config:test`, `doctor`, `build`, `release`, and package-manager
 proxies. Production is separate from `up`. No implicit migrations. Adapter boot
 hooks and once-per-deploy commands are separate lifecycle stages.
 
+## Workspaces
+
+An optional `workspace` object selects `app` and ordered `buildDependencies` paths.
+Ship stays at the repository root and validates membership in root npm/pnpm package
+patterns. Root lockfile authority and per-package development dependency volumes
+are preserved. Node project runtimes retain the pruned repository layout; static
+outputs are copied relative to the app. Isolated framework SSR outputs and Gatsby
+workspace placement fail explicitly. See [workspaces](workspaces.md). The public
+`buildProjectCompose` helper resolves filesystem layout asynchronously; the low-level
+`buildCompose` accepts resolved workspace paths as its optional fifth argument.
+
 ## Configuration
+
+`ship init` emits `$schema: "./ship/ship.schema.json"` and a self-contained draft-07
+schema. The generated artifact is bundled/exported as `js-ship/schema.json`, and
+`shipConfigSchema` is available through the public ESM API. Editor hints do not
+replace manifest/filesystem validation; schema references are never fetched by the
+CLI. See [configuration](configuration.md) for refresh behavior and nullability.
 
 Shared fields retain the existing ecosystem meaning: `services`,
 `additionalServices`, `serviceNames`, `externalNetwork`, `processes`,
 `deployCommands`, `publishPorts`, and `name`. JavaScript adds `framework`, `node`,
 `packageManager`, `scripts`, and `port`. Framework output adds `deployment`,
 `serverEntry`, `runtimeFiles` and `angularProject`; infrastructure adds `mongodbMode`.
+The `build` object explicitly separates `publicEnv` literal public values, named
+`secrets` in `.ship-secrets/NAME`, and the `npmrc` install-secret switch. Runtime
+environment files never become build arguments; release models drop build-secret
+definitions. See [build environment](build-environment.md) for cache and trust boundaries.
 `scripts` names scripts in `package.json`;
 it is not a shell-command injection point. `build: null` means no compilation.
 Process/deploy commands can be shell strings or argument arrays.
@@ -130,7 +151,8 @@ session. Self-daemonizing processes that leave the group are outside this contra
 Containers use Docker init, a 60-second stop grace period and production
 `restart: unless-stopped`. Graceful worker shutdown, crash restart, manual restart
 and TTY exec behavior have live Linux coverage. Template format 4 marks the new
-entrypoint contract; older templates require review and explicit refresh.
+entrypoint contract; format 5 adds build variables and secret mounts; format 6 adds workspace layout; format 7 pins the image catalog and checks Node floors; format 8 adds extension registries. Older
+templates require review and explicit refresh.
 
 ## Infrastructure and MongoDB
 
@@ -189,3 +211,23 @@ portable artifacts initially require compatible host architecture.
 - [pnpm script argument forwarding](https://pnpm.io/cli/run)
 - [VitePress CLI](https://vitepress.dev/reference/cli)
 - [Unprivileged Nginx image](https://github.com/nginx/docker-nginx-unprivileged)
+
+## Runtime maintenance
+
+The root image catalog pins all shipped parent images by digest. Its full Node tags
+also determine host/package engine floors. CLI commands and generated Node image
+builds reject older or unsupported runtimes. Catalog changes invalidate the Docker
+template fingerprint; archives record the reviewed catalog. Dependabot proposals,
+generated-artifact CI checks and a scheduled npm audit support reviewed maintenance.
+See [runtime maintenance](runtime-maintenance.md) and [security policy](../SECURITY.md).
+
+## Extension API v1
+
+`extensions` lists trusted local JavaScript entry modules. They export versioned
+adapter/service definitions and namespaced text templates. Registry factories
+validate definitions and protect built-in keys without global mutation. Callback
+results are checked before entering the core's commands, packaging or Compose
+model. Image/service naming, volume identity, Docker execution and runtime policy
+remain core-owned. Generated schemas include registered choices; template and
+release metadata record extension identity/fingerprints. Extensions execute host
+code, including during validation; no sandbox is implied. See [extensions](extensions.md).

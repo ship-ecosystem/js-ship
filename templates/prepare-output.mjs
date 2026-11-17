@@ -60,7 +60,7 @@ export async function prepareOutput(spec, root, destination) {
 if (process.argv[1] && import.meta.url === pathToFileURL(resolve(process.argv[1])).href) {
   try {
     const root = process.cwd();
-    const spec = JSON.parse(await readFile(join(root, 'ship/output.json'), 'utf8'));
+    const spec = JSON.parse(await readFile(new URL('./output.json', import.meta.url), 'utf8'));
     if (process.argv[2] === '--clean') await cleanOutput(spec, root);
     else await prepareOutput(spec, root, '/opt/ship-runtime');
   } catch (error) { console.error(`ship: ${error.message}`); process.exitCode = 1; }

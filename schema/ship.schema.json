@@ -1,0 +1,472 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "JavaScript Ship configuration",
+  "description": "Docker development environments and portable production releases. Run ship config:test for project-aware checks.",
+  "type": "object",
+  "additionalProperties": false,
+  "properties": {
+    "$schema": {
+      "type": "string",
+      "minLength": 1,
+      "pattern": "\\S",
+      "description": "Editor schema path or URL. Ship never fetches this value at runtime."
+    },
+    "extensions": {
+      "type": "array",
+      "uniqueItems": true,
+      "default": [],
+      "items": {
+        "type": "string",
+        "allOf": [
+          {
+            "pattern": "^(?:\\./)?(?!\\.{1,2}(?:\\/|$))(?!.*\\/\\.{1,2}(?:\\/|$))[A-Za-z0-9_.-]+(?:\\/[A-Za-z0-9_.-]+)*(?![\\s\\S])"
+          },
+          {
+            "pattern": "\\.(?:mjs|cjs|js)(?![\\s\\S])"
+          }
+        ]
+      },
+      "description": "Explicit trusted local JavaScript modules. Each default-exports an API-v1 extension or extension array."
+    },
+    "workspace": {
+      "anyOf": [
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "app": {
+              "$ref": "#/definitions/relativePath"
+            },
+            "buildDependencies": {
+              "type": "array",
+              "uniqueItems": true,
+              "items": {
+                "$ref": "#/definitions/relativePath"
+              },
+              "default": []
+            }
+          },
+          "required": [
+            "app"
+          ]
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "description": "Select an app inside a root npm/pnpm workspace; buildDependencies lists package paths built first, in order."
+    },
+    "name": {
+      "type": "string",
+      "pattern": "^[a-z][a-z0-9]*(?:[-_][a-z0-9]+)*(?![\\s\\S])",
+      "description": "Project identity used in image, network and volume names. Defaults to the directory name."
+    },
+    "framework": {
+      "type": "string",
+      "enum": [
+        "generic",
+        "expressjs",
+        "fastify",
+        "nestjs",
+        "react",
+        "vue",
+        "svelte",
+        "vitepress",
+        "next",
+        "nuxt",
+        "sveltekit",
+        "astro",
+        "angular",
+        "tanstack-start",
+        "gatsby"
+      ],
+      "default": "generic",
+      "description": "Framework adapter. Init detects built-ins from package.json; custom adapters are selected explicitly."
+    },
+    "deployment": {
+      "type": "string",
+      "enum": [
+        "node",
+        "static"
+      ],
+      "description": "Runtime strategy. Supported modes depend on the framework adapter."
+    },
+    "node": {
+      "type": "string",
+      "enum": [
+        "22",
+        "24",
+        "26"
+      ],
+      "default": "24",
+      "description": "Container Node major. Host and build images must meet the bundled runtime floors."
+    },
+    "packageManager": {
+      "type": "string",
+      "enum": [
+        "npm",
+        "pnpm"
+      ],
+      "default": "npm"
+    },
+    "packageManagerVersion": {
+      "type": "string",
+      "pattern": "^(?:0|[1-9]\\d*)\\.(?:0|[1-9]\\d*)\\.(?:0|[1-9]\\d*)(?![\\s\\S])",
+      "examples": [
+        "12.2.2",
+        "12.21.0"
+      ],
+      "description": "Exact stable version; must match package.json when declared there."
+    },
+    "scripts": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "dev": {
+          "$ref": "#/definitions/script"
+        },
+        "build": {
+          "anyOf": [
+            {
+              "$ref": "#/definitions/script"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "start": {
+          "anyOf": [
+            {
+              "$ref": "#/definitions/script"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      },
+      "description": "Names of package.json scripts, not shell commands."
+    },
+    "port": {
+      "type": "integer",
+      "minimum": 1,
+      "maximum": 65535,
+      "default": 3000
+    },
+    "serverEntry": {
+      "anyOf": [
+        {
+          "$ref": "#/definitions/relativePath"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "description": "Framework Node server entry relative to the app root."
+    },
+    "runtimeFiles": {
+      "type": "array",
+      "items": {
+        "$ref": "#/definitions/relativePath"
+      },
+      "default": [],
+      "description": "Extra files required by isolated Node runtime packaging."
+    },
+    "angularProject": {
+      "anyOf": [
+        {
+          "type": "string",
+          "pattern": "^[a-z][a-z0-9]*(?:[-_][a-z0-9]+)*(?![\\s\\S])"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null
+    },
+    "outputDirectory": {
+      "anyOf": [
+        {
+          "$ref": "#/definitions/relativePath"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "description": "Framework build output relative to the app root."
+    },
+    "staticRouting": {
+      "type": "string",
+      "enum": [
+        "spa",
+        "html"
+      ],
+      "default": "spa"
+    },
+    "basePath": {
+      "type": "string",
+      "pattern": "^\\/(?:[A-Za-z0-9_-][A-Za-z0-9_.-]*\\/)*(?![\\s\\S])",
+      "default": "/",
+      "examples": [
+        "/",
+        "/docs/"
+      ]
+    },
+    "mongodbMode": {
+      "type": "string",
+      "enum": [
+        "standalone",
+        "replica-set"
+      ],
+      "default": "replica-set"
+    },
+    "services": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "database": {
+          "enum": [
+            "postgres",
+            "mongodb"
+          ]
+        },
+        "cache": {
+          "enum": [
+            "redis"
+          ]
+        }
+      },
+      "default": {}
+    },
+    "additionalServices": {
+      "type": "array",
+      "default": [],
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "group": {
+            "enum": [
+              "database",
+              "cache"
+            ]
+          },
+          "service": {
+            "enum": [
+              "postgres",
+              "redis",
+              "mongodb"
+            ]
+          },
+          "name": {
+            "type": "string",
+            "pattern": "^[a-z][a-z0-9_]*(?![\\s\\S])"
+          }
+        },
+        "required": [
+          "group",
+          "service",
+          "name"
+        ],
+        "allOf": [
+          {
+            "if": {
+              "properties": {
+                "group": {
+                  "const": "database"
+                }
+              },
+              "required": [
+                "group"
+              ]
+            },
+            "then": {
+              "properties": {
+                "service": {
+                  "enum": [
+                    "postgres",
+                    "mongodb"
+                  ]
+                }
+              }
+            }
+          },
+          {
+            "if": {
+              "properties": {
+                "group": {
+                  "const": "cache"
+                }
+              },
+              "required": [
+                "group"
+              ]
+            },
+            "then": {
+              "properties": {
+                "service": {
+                  "enum": [
+                    "redis"
+                  ]
+                }
+              }
+            }
+          }
+        ]
+      }
+    },
+    "serviceNames": {
+      "type": "object",
+      "propertyNames": {
+        "type": "string",
+        "pattern": "^[a-z][a-z0-9]*(?:[-_][a-z0-9]+)*(?![\\s\\S])"
+      },
+      "additionalProperties": {
+        "type": "string",
+        "pattern": "^[a-z][a-z0-9]*(?:[-_][a-z0-9]+)*(?![\\s\\S])"
+      },
+      "default": {},
+      "description": "Rename app or selected services; persistent resource identities stay stable."
+    },
+    "externalNetwork": {
+      "anyOf": [
+        {
+          "type": "string",
+          "pattern": "^[A-Za-z0-9][A-Za-z0-9_.-]*(?![\\s\\S])"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null
+    },
+    "publishPorts": {
+      "type": "boolean",
+      "default": false,
+      "description": "Publish production app ports. Development ports bind to loopback."
+    },
+    "processes": {
+      "type": "object",
+      "propertyNames": {
+        "type": "string",
+        "pattern": "^[a-z][a-z0-9]*(?:[-_][a-z0-9]+)*(?![\\s\\S])",
+        "not": {
+          "enum": [
+            "init",
+            "up",
+            "down",
+            "exec",
+            "shell",
+            "logs",
+            "db",
+            "config:test",
+            "doctor",
+            "build",
+            "release",
+            "npm",
+            "pnpm",
+            "app"
+          ]
+        }
+      },
+      "additionalProperties": {
+        "$ref": "#/definitions/command"
+      },
+      "default": {},
+      "description": "Production workers sharing the Node app image."
+    },
+    "deployCommands": {
+      "type": "array",
+      "items": {
+        "$ref": "#/definitions/command"
+      },
+      "default": [],
+      "description": "Commands run by the exported deployment script."
+    },
+    "build": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "publicEnv": {
+          "type": "object",
+          "propertyNames": {
+            "$ref": "#/definitions/environmentName"
+          },
+          "additionalProperties": {
+            "type": "string",
+            "pattern": "^[^\\u0000]*$"
+          },
+          "default": {},
+          "description": "PUBLIC literal strings for builds and development. Never put credentials here."
+        },
+        "secrets": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": {
+            "type": "string",
+            "allOf": [
+              {
+                "$ref": "#/definitions/environmentName"
+              },
+              {
+                "not": {
+                  "pattern": "^(?:VITE_|NEXT_PUBLIC_|NUXT_PUBLIC_|PUBLIC_|GATSBY_|REACT_APP_)"
+                }
+              }
+            ]
+          },
+          "default": [],
+          "description": "Build-only environment names. Contents come from .ship-secrets/NAME; public framework prefixes are forbidden."
+        },
+        "npmrc": {
+          "type": "boolean",
+          "default": false,
+          "description": "Mount .ship-secrets/npmrc for npm/pnpm dependency operations, never production runtime."
+        }
+      },
+      "description": "Explicit public values and temporary build credentials; runtime .env files are excluded from builds."
+    }
+  },
+  "definitions": {
+    "relativePath": {
+      "type": "string",
+      "pattern": "^(?!\\.{1,2}(?:\\/|$))(?!.*\\/\\.{1,2}(?:\\/|$))[A-Za-z0-9_.-]+(?:\\/[A-Za-z0-9_.-]+)*(?![\\s\\S])",
+      "description": "Relative path without traversal, spaces or shell/config syntax."
+    },
+    "script": {
+      "type": "string",
+      "pattern": "^[a-zA-Z0-9:_-]+(?![\\s\\S])"
+    },
+    "environmentName": {
+      "type": "string",
+      "pattern": "^(?!(?:SHIP_|NODE_|NPM_|PNPM_|LD_|DYLD_))(?!(?:PATH|HOME|ENV|BASH_ENV|SHELL|IFS|CI|COREPACK_HOME|HOST|HOSTNAME|PORT|NG_ALLOWED_HOSTS)$)[A-Z][A-Z0-9_]*(?![\\s\\S])"
+    },
+    "command": {
+      "anyOf": [
+        {
+          "type": "string",
+          "pattern": "^(?=[\\s\\S]*\\S)[^\\u0000]*$"
+        },
+        {
+          "type": "array",
+          "minItems": 1,
+          "items": [
+            {
+              "type": "string",
+              "pattern": "^[^\\u0000]*$",
+              "minLength": 1
+            }
+          ],
+          "additionalItems": {
+            "type": "string",
+            "pattern": "^[^\\u0000]*$"
+          }
+        }
+      ]
+    }
+  }
+}

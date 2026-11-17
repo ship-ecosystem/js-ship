@@ -26,7 +26,7 @@ export function parseEnv(text: string): Record<string, string> {
 }
 
 export async function productionProblems(model: ComposeModel, root: string, requireFile = false): Promise<string[]> {
-  const required = [...new Set([...JSON.stringify(model).matchAll(/\$\{([A-Za-z_][A-Za-z0-9_]*):\?/g)].map(m => m[1]!))];
+  const required = [...new Set([...JSON.stringify(model).matchAll(/\$\$|\$\{([A-Za-z_][A-Za-z0-9_]*):\?/g)].flatMap(m => m[1] ? [m[1]] : []))];
   const path = resolve(root, ".env.production");
   if (!(await exists(path))) return required.length || requireFile ? [".env.production is required for this production stack."] : [];
   const values = parseEnv(await readFile(path, "utf8"));

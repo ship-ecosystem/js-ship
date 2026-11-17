@@ -1,31 +1,33 @@
 import { mkdir, writeFile } from "node:fs/promises";
 import { resolve } from "node:path";
 import { randomUUID } from "node:crypto";
-import { buildCompose, render } from "./compose.js";
+import { buildProjectCompose, render } from "./compose.js";
 import { exists, readConfig } from "./config.js";
 import { projectProblems } from "./init.js";
 import { ConfigError } from "./errors.js";
-import type { ComposeModel, Environment, ShipConfig } from "./contracts.js";
+import { loadExtensions } from "./extensions.js";
+import type { ExtensionRegistry, ComposeModel, Environment, ShipConfig } from "./contracts.js";
 import { adapterFor } from "./adapters.js";
 import { templateProblems } from "./templates.js";
 
-export async function loadProject(root: string): Promise<ShipConfig> {
+export async function loadProject(root: string, registry?: ExtensionRegistry): Promise<ShipConfig> {
   const config = await readConfig(root);
-  const problems = await projectProblems(config, root);
-  problems.push(...await templateProblems(config, root));
+  registry ??= await loadExtensions(root, config.extensions);
+  const problems = await projectProblems(config, root, registry);
+  problems.push(...await templateProblems(config, root, registry));
   const mongo = Object.values(config.services).includes("mongodb") || config.additionalServices.some(s => s.service === "mongodb");
-  for (const filename of ["Dockerfile", "dev-entrypoint.sh", "app-entrypoint.mjs", "prepare-output.mjs", "output.json",
+  for (const filename of [...Object.keys(registry.templates), "Dockerfile", "runtime-version.mjs", "check-runtime.mjs", "dev-entrypoint.sh", "app-entrypoint.mjs", "prepare-output.mjs", "output.json",
     ...(config.framework === "gatsby" ? ["gatsby-adapter.cjs"] : []),
     ...(mongo ? ["mongodb/Dockerfile", "mongodb/entrypoint.sh", "mongodb/bootstrap.sh", "mongodb/bootstrap.js", "mongodb/health.js", "mongodb/app-user.js"] : []),
-    ...(adapterFor(config).packaging(config).kind === "static" ? ["nginx.conf"] : [])]) {
+    ...(adapterFor(config, registry).packaging(config).kind === "static" ? ["nginx.conf"] : [])]) {
     if (!(await exists(resolve(root, "ship", filename)))) problems.push(`ship/${filename} is missing; run ship init.`);
   }
   if (problems.length) throw new ConfigError(problems);
   return config;
 }
 
-export async function composePrefix(root: string, config: ShipConfig, environment: Environment, tag = "local", options: { refreshApp?: boolean } = {}): Promise<{ prefix: string[]; model: ComposeModel }> {
-  const model = buildCompose(config, root, environment, tag);
+export async function composePrefix(root: string, config: ShipConfig, environment: Environment, tag = "local", options: { refreshApp?: boolean; registry?: ExtensionRegistry } = {}): Promise<{ prefix: string[]; model: ComposeModel }> {
+  const model = await buildProjectCompose(config, root, environment, tag, options.registry);
   if (environment === "development" && options.refreshApp) {
     // Dependency proxies can mutate node_modules without changing the startup manifest.
     // Recreate only app on every explicit up so its frozen install is never bypassed.

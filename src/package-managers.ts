@@ -5,7 +5,7 @@ import { ConfigError } from "./errors.js";
 
 import { DEFAULT_NPM_VERSION, EXACT_VERSION } from "./versions.js";
 export { DEFAULT_NPM_VERSION, EXACT_VERSION } from "./versions.js";
-const MANIFEST_MANAGER = /^(npm|pnpm)@(\d+\.\d+\.\d+)(?:\+sha(?:224|256|384|512)\.[a-fA-F0-9]+)?$/;
+const MANIFEST_MANAGER = /^(npm|pnpm)@(\d+\.\d+\.\d+)(?:\+sha(?:224|256|384|512)\.[a-fA-F0-9]+)?(?![\s\S])/;
 export interface PackageManager {
   name: PackageManagerName;
   lockfile: string;
@@ -44,7 +44,7 @@ export async function packageManagerProblems(config: ShipConfig, manifest: Proje
   for (const file of ["package-lock.json", "npm-shrinkwrap.json", "pnpm-lock.yaml", "yarn.lock", "bun.lock", "bun.lockb"]) {
     if (file !== selected.lockfile && await exists(resolve(root, file))) problems.push(`${file} conflicts with the selected ${config.packageManager} workflow. Select one package manager.`);
   }
-  if (manifest.workspaces || await exists(resolve(root, "pnpm-workspace.yaml"))) problems.push("Workspace projects are planned but not supported yet.");
+  if (!config.workspace && (manifest.workspaces || await exists(resolve(root, "pnpm-workspace.yaml")))) problems.push("Workspace projects need an explicit app selection. Run ship init --workspace apps/YOUR_APP from the workspace root.");
   return problems;
 }
 

@@ -88,15 +88,31 @@ Implemented with planning, output-file and bootstrap tests:
 - External database documentation and public/client environment boundaries.
 - Extend MongoDB coverage to version upgrades and explicit failure recovery.
 
+## Public testing approach
+
+Complete the remaining package work first, then make the GitHub repository public
+and publish a clearly marked npm prerelease for public testing. Authenticated
+private-registry download verification is deferred; do not block this work on it.
+The development repository remains private and the npm package remains unpublished.
+
 ## Before public beta
 
 - Broaden runtime checks to longer shutdowns, infrastructure failures and host/platform variants.
-- Build/cache/secret environment separation and private npm registry support.
-- Runtime security-floor policy; image and dependency update automation.
-- Publish shared JSON Schema and stable extension loading contracts.
-- Workspace-aware builds and correct runtime dependency packaging.
-- Final npm name, provenance/trusted publishing and changelog; the private GitHub
-  repository and package repository metadata are configured.
+- Build environment separation and npm/pnpm registry secret mounting implemented;
+  extend authenticated private-registry download coverage.
+- Reviewed Node floors, digest-pinned parent catalog, Dependabot configuration,
+  generated-artifact checks and scheduled npm audit implemented. Activate the
+  prepared configuration on GitHub and enable private vulnerability reporting
+  before public testing.
+- Shared JSON Schema, offline editor integration and npm schema export implemented.
+- Extension API v1 implemented: explicit local JS/CJS modules, isolated validated
+  registries, owned volumes, namespaced templates and project-specific schemas.
+- Root npm/pnpm workspace installs, explicit app/build order, isolated development
+  dependency volumes and layout-preserving Node/static packaging implemented.
+  Dedicated isolated-SSR workspace layouts and minimal dependency closures remain.
+- npm release ownership, provenance/trusted publishing and changelog; the selected
+  package name is `js-ship`, and the private GitHub repository and package
+  repository metadata are configured.
 - Optional Mutagen integration and richer doctor recovery hints.
 
 Current local results and their limits are recorded in [verification](verification.md).

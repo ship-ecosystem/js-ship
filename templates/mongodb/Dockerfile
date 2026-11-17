@@ -1,4 +1,4 @@
-FROM mongo:8.0
+FROM @MONGODB_IMAGE@
 COPY --chmod=755 ship/mongodb/entrypoint.sh /usr/local/bin/ship-mongo
 COPY --chmod=755 ship/mongodb/bootstrap.sh /usr/local/bin/ship-mongo-bootstrap
 COPY ship/mongodb/bootstrap.js /usr/local/share/ship-mongo-bootstrap.js

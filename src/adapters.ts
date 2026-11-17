@@ -1,4 +1,5 @@
-import type { FrameworkAdapter, ProjectManifest, ShipConfig } from "./contracts.js";
+import { frozenMap } from "./collections.js";
+import type { ExtensionRegistry, FrameworkAdapter, ProjectManifest, ShipConfig } from "./contracts.js";
 import { ConfigError } from "./errors.js";
 import { scriptCommand } from "./package-managers.js";
 import { frameworkProfiles } from "./framework-profiles.js";
@@ -81,11 +82,11 @@ function staticAdapter(key: string, label: string, dependency: string): Framewor
 }
 
 export const genericAdapter = nodeAdapter("generic", "Generic Node.js application");
-export const builtinAdapters = new Map([
+export const builtinAdapters: ReadonlyMap<string, FrameworkAdapter> = frozenMap(new Map([
   genericAdapter, nodeAdapter("expressjs", "Express.js", "express"), nodeAdapter("fastify", "Fastify", "fastify"), nodeAdapter("nestjs", "NestJS", "@nestjs/core"),
   staticAdapter("react", "React (Vite)", "react"), staticAdapter("vue", "Vue (Vite)", "vue"), staticAdapter("svelte", "Svelte (Vite)", "svelte"), staticAdapter("vitepress", "VitePress", "vitepress"),
   ...frameworkProfiles,
-].map(adapter => [adapter.key, adapter]));
+].map(adapter => [adapter.key, Object.freeze({ ...adapter })])));
 
 /** Specific full-stack frameworks win even before their deployment adapter is available. */
 export function detectFramework(manifest: ProjectManifest): string {
@@ -98,8 +99,9 @@ export function detectFramework(manifest: ProjectManifest): string {
   return priority.find(([, dependency]) => has(manifest, dependency!))?.[0] ?? "generic";
 }
 
-export function adapterFor(config: Pick<ShipConfig, "framework">): FrameworkAdapter {
-  const adapter = builtinAdapters.get(config.framework);
-  if (!adapter) throw new ConfigError([`Adapter ${JSON.stringify(config.framework)} is not implemented yet. Available: ${[...builtinAdapters.keys()].join(", ")}. Select generic explicitly only when its Node packaging fits your app.`]);
+export function adapterFor(config: Pick<ShipConfig, "framework">, registry?: ExtensionRegistry): FrameworkAdapter {
+  const adapters = registry?.adapters ?? builtinAdapters;
+  const adapter = adapters.get(config.framework);
+  if (!adapter) throw new ConfigError([`Adapter ${JSON.stringify(config.framework)} is not implemented yet. Available: ${[...adapters.keys()].join(", ")}. Select generic explicitly only when its Node packaging fits your app.`]);
   return adapter;
 }

@@ -3,10 +3,12 @@
 Verified on November 16–17, 2026 with Node 22.23.3, npm 11.20.0,
 TypeScript 5.9.3, Docker Engine 29.9.2 and Compose 5.6.1 on Linux.
 The granted execution permission enabled Docker, subprocess and socket tests.
+The runtime-policy milestone uses an isolated Node 22.23.5 runtime from npm exec;
+the globally installed Node 22.23.3 was left unchanged.
 
 ## Completed
 
-- Strict type checking, compilation and all 99 unit/integration-boundary tests
+- Strict type checking, compilation and all 123 unit/integration-boundary tests
   passed, with no skips. These include subprocess forwarding, CLI integration
   and HTTP readiness.
 - `npm run test:package` built and installed the npm tarball offline into a
@@ -178,9 +180,119 @@ The local check uses one Docker daemon. The successful GitHub workflow additiona
 confirms transfer between separate fresh runner environments, with no source checkout,
 SDK/npm installation, image build or registry pull on the consuming runner.
 
+## Build environment milestone (local)
+
+The selected npm package name is now `js-ship`; the GitHub repository remains
+`ship-ecosystem/js-ship`. It remains private/unpublished in package metadata.
+
+- Type checking and 102 unit/boundary tests passed, including reserved/public
+  variable validation, literal Compose values, secret visibility, no-cache
+  argument forwarding and build-context protection against ignore overrides.
+- The renamed tarball installed offline and its CLI/public API checks passed.
+- npm and pnpm Docker cases exercised registry user configuration in installation
+  lifecycle hooks, temporary build-secret environment variables, public-value
+  rebuilds, development startup/proxies and production/release isolation. pnpm implicit
+  installs before `run`/`exec` are disabled so installs stay within those boundaries.
+  Saved builder and exported production image members were scanned for synthetic
+  credential markers, decompressing gzip layer blobs where present.
+- The existing VitePress static/subpath portable-release case passed, and the
+  local source-free release-transfer regression passed.
+- Current suite size is 29 Docker cases across thirteen suites. This milestone
+  has local Linux results; the GitHub runs linked above cover the earlier code.
+
+These registry tests verify secret configuration delivery and lifecycle isolation;
+authenticated private package downloads and credential rotation against actual
+registry implementations remain to be added. Build scripts can deliberately
+persist any secrets they are allowed to read; no scanner proves arbitrary
+application code safe. See [build environment](build-environment.md).
+
+## Configuration schema milestone (local)
+
+- Type checking and all 106 unit/boundary tests passed. AJV compiled the draft-07
+  schema in strict mode (with intentional variable-length command tuples enabled).
+- Thirty normalized framework/package-manager configurations validated. Tests also
+  cover malformed input, traversal rejection, field coverage, local init/refresh
+  and preservation of custom editor schema references.
+- The installed npm tarball exported `js-ship/schema.json` and `shipConfigSchema`,
+  and the installed CLI generated the same offline editor schema. AJV remained a
+  development dependency and was absent from the consumer install.
+- Nullability is now explicit: non-nullable fields reject `null`; schema references
+  must be nonempty strings. These stricter input checks are intentional.
+- These are local Linux checks. No additional Docker/browser matrix was run for
+  this editor/schema change, and the earlier GitHub run links cover older code.
+
+## Workspace milestone (local)
+
+- Type checking, all 113 unit/boundary tests and installed-tarball verification
+  passed. Tests cover package selection, exclusions, containment, root lockfile
+  authority, dependency-volume identity, app switching and package-pin consistency.
+- npm 12.2.2 and pnpm 12.21.0 Docker fixtures built a shared TypeScript workspace
+  package and ran its transitive production dependency after root pruning. No
+  compiler packages remained, including pnpm virtual-store copies. Both exported
+  releases booted as non-root after removing the original package sources.
+- A React/Vite npm workspace passed development serving, shared-package build
+  order, production subpath assets and static Nginx packaging without Node.
+- Current suite size is 32 Docker cases in fourteen suites. Three workspace cases
+  passed locally on Linux. The earlier GitHub run links cover older code; the
+  complete framework/browser matrix was not rerun for this milestone.
+- Isolated SSR workspace layouts, Gatsby workspace adapter placement, minimal
+  dependency closures and broader package-manager/host versions remain unsupported
+  or unverified as described in [workspaces](workspaces.md).
+
+## Runtime policy and update milestone (local)
+
+- Type checking, all 115 unit/boundary tests and installed-tarball verification
+  passed using patched Node 22.23.5. The existing Node 22.23.3 CLI invocation was
+  rejected with a clear upgrade message before project work.
+- Node floors are 22.23.5, 24.22.3 and 26.13.1, based on the November 11 upstream
+  security releases. Default Node/Nginx/PostgreSQL/Redis/MongoDB parents are pinned
+  to registry-resolved multi-platform image digests in a central catalog.
+- Generic PostgreSQL/Redis release, VitePress static/subpath release and both
+  MongoDB live cases passed using the pinned parents and generated build guards.
+- All three catalog Node images ran the generated version guard successfully;
+  an overridden Node 22.23.3 base failed before dependency installation. Five live
+  Docker cases passed in this milestone. The suite now contains 33 cases across
+  fifteen suites; the full framework/browser matrix was not rerun.
+- The npm audit reported zero advisories for the current lockfile. This does not
+  establish the absence of application or container operating-system vulnerabilities.
+- Dependabot and workflow YAML syntax and the catalog's Compose syntax validated.
+  The locally prepared Dependabot configuration is not yet activated on GitHub.
+  CI now includes generated-artifact checks, a scheduled npm audit and catalog
+  change triggers for Docker/release-transfer workflows.
+- Private vulnerability reporting must be enabled before the repository's public
+  test release. No repository visibility or npm publication action was performed.
+
+## Extension API milestone (local)
+
+- Type checking and all 122 unit/boundary tests passed, covering isolated immutable
+  registries, version/collision errors, command/path/result validation, ESM/CJS
+  loading, source-change handling, custom schemas, missing-file recovery and
+  stable volume/build identity. Class callbacks retain their receiver, and custom
+  static defaults select Nginx without implicit Vite build flags.
+- A separately installed tarball loaded a module using public SDK imports,
+  generated custom templates/schema and passed CLI validation. A consumer's
+  TypeScript extension compiled against the public declarations, including
+  expected errors for unsupported API versions and mutable registry operations.
+- A live Docker custom adapter and build-owned Redis extension passed startup,
+  healthchecks, named instances and portable release boot after removing the host
+  extension and application source entry. Both instances shared one exported
+  infrastructure image; the release recorded extension identity and fingerprint.
+- The suite now contains 34 Docker cases in sixteen suites. One extension case
+  passed locally; the full GitHub/framework/browser matrix has not been rerun for
+  these accumulated local changes. The repository remains private/unpublished.
+
 ## Remaining verification
 
 Additional versions/package managers and framework options,
 browser HMR beyond the Vite cases above, Windows/macOS Docker behavior,
 and security/release review remain before public beta. Successful
 representative builds do not establish support for every framework version.
+
+## Accumulated-change review
+
+Before the full GitHub rerun, local review closed four validation gaps: managed
+host/port environment names are reserved, Compose-escaped public expressions are
+not treated as production credential requirements, newline-suffixed package-manager
+pins/release tags are rejected, and explicitly disabled service healthchecks use
+startup dependencies. All 123 unit/boundary tests and installed-package/type checks
+passed under Node 22.23.5. Remote verification for this revision is pending.

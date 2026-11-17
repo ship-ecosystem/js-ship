@@ -6,7 +6,9 @@ on:
     paths:
       - 'src/**'
       - 'templates/**'
+      - 'images/**'
       - 'test/**'
+      - 'scripts/**'
       - 'examples/**'
       - 'package*.json'
       - '.github/workflows/docker.yml'
@@ -14,7 +16,9 @@ on:
     paths:
       - 'src/**'
       - 'templates/**'
+      - 'images/**'
       - 'test/**'
+      - 'scripts/**'
       - 'examples/**'
       - 'package*.json'
       - '.github/workflows/docker.yml'
@@ -37,7 +41,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        suite: [workflow, static, mongodb, dependencies, next, vite, servers, ssr, angular, gatsby, tanstack, lifecycle]
+        suite: [extensions, runtime-policy, workspaces, build-environment, workflow, static, mongodb, dependencies, next, vite, servers, ssr, angular, gatsby, tanstack, lifecycle]
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
         with:

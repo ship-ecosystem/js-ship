@@ -4,6 +4,8 @@ on:
   push:
     branches: [main]
   pull_request:
+  schedule:
+    - cron: '41 5 * * 1'
   workflow_dispatch:
 
 permissions:
@@ -34,3 +36,21 @@ jobs:
       - run: npm ci
       - run: npm run check
       - run: npm run test:package
+      - name: Require generated artifacts to be tracked
+        run: git ls-files --error-unmatch src/images.ts schema/ship.schema.json package.json package-lock.json
+      - name: Check generated policy and schema artifacts
+        run: git diff --exit-code -- src/images.ts schema/ship.schema.json package.json package-lock.json
+
+  dependency-audit:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6
+        with:
+          node-version: '24'
+          cache: npm
+      - run: npm ci --ignore-scripts
+      - run: npm audit --audit-level=high

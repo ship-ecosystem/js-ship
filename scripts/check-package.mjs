@@ -18,7 +18,7 @@ function run(args, cwd) {
 try {
   const pkg = JSON.parse(await readFile(join(root, 'package.json'), 'utf8'));
   const packed = JSON.parse(run([npm, 'pack', '--ignore-scripts', '--json', '--pack-destination', work], root))[0];
-  const consumer = join(work, 'consumer'), app = join(work, 'app'), site = join(work, 'gatsby');
+  const consumer = join(work, 'consumer'), app = join(work, 'app'), site = join(work, 'gatsby'), workspace = join(work, 'workspace');
   await mkdir(consumer);
   await writeFile(join(consumer, 'package.json'), '{"private":true,"type":"module"}');
   // No runtime dependencies: installation from the built tarball needs no registry.
@@ -30,6 +30,7 @@ try {
   await stat(join(consumer, 'node_modules/.bin', process.platform === 'win32' ? 'ship.cmd' : 'ship'));
   await assert.rejects(stat(join(installed, 'src')));
   await assert.rejects(stat(join(consumer, 'node_modules/typescript')));
+  await assert.rejects(stat(join(consumer, 'node_modules/ajv')));
   await assert.rejects(stat(join(consumer, 'node_modules/playwright')));
   await assert.rejects(stat(join(consumer, 'node_modules/playwright-core')));
   await cp(join(root, 'examples/node'), app, { recursive: true });
@@ -42,15 +43,60 @@ try {
   await writeFile(join(site, 'package-lock.json'), '{}');
   run([cli, '--project-directory', site, 'init', '--no-interaction'], consumer);
   run([cli, '--project-directory', site, 'config:test'], consumer);
+  await mkdir(join(workspace, 'apps/api'), { recursive: true });
+  await writeFile(join(workspace, 'package.json'), JSON.stringify({ private: true, workspaces: ['apps/*'], packageManager: 'npm@12.2.2' }));
+  await writeFile(join(workspace, 'package-lock.json'), '{}');
+  await cp(join(root, 'examples/node/package.json'), join(workspace, 'apps/api/package.json'));
+  run([cli, '--project-directory', workspace, 'init', '--workspace', 'apps/api', '--no-interaction'], consumer);
+  run([cli, '--project-directory', workspace, 'config:test'], consumer);
+  const custom = join(consumer, 'custom');
+  await cp(join(root, 'examples/node'), custom, { recursive: true });
+  await writeFile(join(custom, 'ship.extensions.mjs'), `import { builtinAdapters } from ${JSON.stringify(pkg.name)};
+export default { apiVersion: 1, name: 'installed', version: '1.0.0',
+  adapters: [{ ...builtinAdapters.get('generic'), key: 'installed-node', label: 'Installed Node' }],
+  templates: { 'notes.txt': 'installed extension template' } };`);
+  await writeFile(join(custom, 'ship.json'), JSON.stringify({ extensions: ['ship.extensions.mjs'], framework: 'installed-node' }));
+  run([cli, '--project-directory', custom, 'init', '--no-interaction'], consumer);
+  run([cli, '--project-directory', custom, 'config:test'], consumer);
+  assert.equal(await readFile(join(custom, 'ship/extensions/installed/notes.txt'), 'utf8'), 'installed extension template');
+  await writeFile(join(consumer, 'extension.mts'), `import { builtinAdapters, createRegistry, type ShipExtension } from ${JSON.stringify(pkg.name)};
+const extension = { apiVersion: 1, name: 'typed', version: '1.0.0', adapters: [
+  { ...builtinAdapters.get('generic')!, key: 'typed-node', label: 'Typed Node' }
+], services: [{ key: 'typed-service', label: 'Typed service', group: 'cache', volumes: ['data'],
+  compose: context => ({ image: 'redis:7', volumes: [context.volume('data') + ':/data'] }),
+  appEnvironment: context => ({ TYPED_HOST: context.serviceName }) }] } satisfies ShipExtension;
+const registry = createRegistry([extension]);
+// @ts-expect-error Registries expose read-only maps.
+registry.adapters.set('oops', extension.adapters[0]);
+// @ts-expect-error Unsupported extension API versions are rejected by the type contract.
+const incompatible: ShipExtension = { apiVersion: 2, name: 'bad', version: '1.0.0' };
+`);
+  await writeFile(join(consumer, 'tsconfig.extension.json'), JSON.stringify({ compilerOptions: { strict: true, noEmit: true,
+    target: 'ES2022', module: 'NodeNext', moduleResolution: 'NodeNext', types: [] }, files: ['extension.mts'] }));
+  run([join(root, 'node_modules/typescript/bin/tsc'), '-p', join(consumer, 'tsconfig.extension.json')], consumer);
   const verify = join(consumer, 'verify.mjs');
   await writeFile(verify, `import assert from 'node:assert/strict';
 import { createRequire } from 'node:module';
 import { readFile } from 'node:fs/promises';
 import { join } from 'node:path';
-import { builtinAdapters, readConfig, buildCompose } from ${JSON.stringify(pkg.name)};
+import { builtinAdapters, readConfig, buildCompose, buildProjectCompose, shipConfigSchema, loadExtensions, createConfigSchema } from ${JSON.stringify(pkg.name)};
+const bundledSchema = JSON.parse(await readFile(createRequire(import.meta.url).resolve(${JSON.stringify(pkg.name + '/schema.json')}), 'utf8'));
+assert.deepEqual(bundledSchema, shipConfigSchema);
+const authored = JSON.parse(await readFile(join(process.argv[2], 'ship.json'), 'utf8'));
+assert.equal(authored.$schema, './ship/ship.schema.json');
+assert.deepEqual(JSON.parse(await readFile(join(process.argv[2], authored.$schema), 'utf8')), bundledSchema);
+const extensionConfig = await readConfig(process.argv[5]);
+const registry = await loadExtensions(process.argv[5], extensionConfig.extensions);
+assert.ok(registry.adapters.has('installed-node'));
+assert.equal(builtinAdapters.has('installed-node'), false);
+assert.equal(createConfigSchema(registry).properties.framework.enum.includes('installed-node'), true);
 const config = await readConfig(process.argv[2]);
 assert.equal(config.services.database, 'mongodb');
 assert.equal(builtinAdapters.size, 15);
+const workspaceConfig = await readConfig(process.argv[4]);
+const workspaceModel = await buildProjectCompose(workspaceConfig, process.argv[4], 'development');
+assert.equal(workspaceModel.services.app.working_dir, '/app/apps/api');
+assert.equal(workspaceModel.services.app.volumes.length, 3);
 const model = buildCompose(config, process.argv[2], 'production');
 assert.ok(model.services.mongodb.build);
 assert.equal(model.services.app.environment.MONGODB_ROOT_PASSWORD, '');
@@ -61,7 +107,7 @@ await adapter.adapt({ routesManifest: [{ type: 'static', path: '/' }], functions
 assert.equal(JSON.parse(await readFile('ship/.gatsby-static.json', 'utf8')).static, true);
 assert.match(await readFile('ship/nginx.conf', 'utf8'), /X-Content-Type-Options/);
 `);
-  run([verify, app, site], consumer);
+  run([verify, app, site, workspace, custom], consumer);
   console.log(`Installed tarball verified: ${pkg.name}@${pkg.version} (${packed.entryCount} files).`);
 } finally {
   await rm(work, { recursive: true, force: true });

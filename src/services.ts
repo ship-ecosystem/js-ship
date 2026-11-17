@@ -1,9 +1,17 @@
+import { frozenMap } from "./collections.js";
+import { NAME } from "./config-rules.js";
+import { ConfigError } from "./errors.js";
+import { IMAGES } from "./images.js";
 import { resolve } from "node:path";
 import type { Environment, ServiceContext, ServiceDefinition, ShipConfig } from "./contracts.js";
 
 export function serviceContext(environment: Environment, key: string, instance: string | null, serviceName: string, options: { config?: ShipConfig; projectRoot?: string } = {}): ServiceContext {
   const envPrefix = instance ? `${instance.toUpperCase()}_` : "";
   return Object.freeze({ config: options.config ?? null, projectRoot: options.projectRoot ?? null, environment, serviceName, resourceName: instance ? `${key}-${instance}` : key, envPrefix,
+    volume(name: string): string {
+      if (!NAME.test(name)) throw new ConfigError(["Service volume suffix must be a valid name."]);
+      return `${instance ? `${key}-${instance}` : key}_${name}`;
+    },
     credential(name: string, fallback: string): string {
       const variable = envPrefix + name;
       return environment === "production" ? `\${${variable}:?${variable} is required in .env.production}` : `\${${variable}:-${fallback}}`;
@@ -14,8 +22,8 @@ export function serviceContext(environment: Environment, key: string, instance: 
 
 const healthcheck = (test: string[]) => ({ test, interval: "5s", timeout: "5s", retries: 20, start_period: "10s" });
 export const postgres: ServiceDefinition = {
-  key: "postgres", label: "PostgreSQL", group: "database",
-  compose: c => ({ image: "postgres:17-bookworm", environment: {
+  key: "postgres", label: "PostgreSQL", group: "database", volumes: ["data"],
+  compose: c => ({ image: IMAGES.postgres, environment: {
     POSTGRES_DB: c.setting("DB_NAME", "ship"), POSTGRES_USER: c.setting("DB_USER", "ship"), POSTGRES_PASSWORD: c.credential("DB_PASSWORD", "shipsecret"),
   }, volumes: [`${c.resourceName}_data:/var/lib/postgresql/data`],
   healthcheck: healthcheck(["CMD-SHELL", 'pg_isready -h 127.0.0.1 -U "$${POSTGRES_USER}" -d "$${POSTGRES_DB}"']), restart: "unless-stopped" }),
@@ -24,13 +32,13 @@ export const postgres: ServiceDefinition = {
   databaseShell: () => ["sh", "-c", 'exec psql -U "$POSTGRES_USER" -d "$POSTGRES_DB"'],
 };
 export const redis: ServiceDefinition = {
-  key: "redis", label: "Redis", group: "cache",
-  compose: c => ({ image: "redis:7-bookworm", command: ["redis-server", "--appendonly", "yes"], volumes: [`${c.resourceName}_data:/data`],
+  key: "redis", label: "Redis", group: "cache", volumes: ["data"],
+  compose: c => ({ image: IMAGES.redis, command: ["redis-server", "--appendonly", "yes"], volumes: [`${c.resourceName}_data:/data`],
     healthcheck: healthcheck(["CMD", "redis-cli", "ping"]), restart: "unless-stopped" }),
   appEnvironment: c => ({ [`${c.envPrefix}REDIS_URL`]: `redis://${c.serviceName}:6379/0` }),
 };
 export const mongodb: ServiceDefinition = {
-  key: "mongodb", label: "MongoDB", group: "database",
+  key: "mongodb", label: "MongoDB", group: "database", volumes: ["data", "config"],
   compose: c => ({ build: { context: resolve(c.projectRoot ?? "."), dockerfile: "ship/mongodb/Dockerfile" }, init: true,
     environment: { MONGO_INITDB_ROOT_USERNAME: c.setting("MONGODB_ROOT_USER", "shipadmin"), MONGO_INITDB_ROOT_PASSWORD: c.credential("MONGODB_ROOT_PASSWORD", "shiprootsecret"),
       MONGO_INITDB_DATABASE: c.setting("MONGODB_DATABASE", "ship"), SHIP_MONGO_USER: c.setting("MONGODB_USER", "ship"), SHIP_MONGO_PASSWORD: c.credential("MONGODB_PASSWORD", "shipsecret"),
@@ -44,4 +52,4 @@ export const mongodb: ServiceDefinition = {
     [`${c.envPrefix}MONGODB_ROOT_PASSWORD`]: "" }),
   databaseShell: () => ["sh", "-c", 'exec mongosh --host 127.0.0.1 --username "$SHIP_MONGO_USER" --password "$SHIP_MONGO_PASSWORD" --authenticationDatabase "$MONGO_INITDB_DATABASE" "$MONGO_INITDB_DATABASE"'],
 };
-export const builtinServices = new Map([postgres, redis, mongodb].map(service => [service.key, service]));
+export const builtinServices: ReadonlyMap<string, ServiceDefinition> = frozenMap(new Map([postgres, redis, mongodb].map(service => [service.key, Object.freeze({ ...service, volumes: Object.freeze([...(service.volumes ?? [])]) })])));

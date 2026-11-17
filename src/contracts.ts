@@ -7,6 +7,7 @@ export interface ComposeModel {
   services: Record<string, ComposeService>;
   volumes: Record<string, Record<string, never>>;
   networks: Record<string, Record<string, unknown>>;
+  secrets?: Record<string, { file: string }>;
 }
 
 export interface AdditionalService { group: string; service: string; name: string }
@@ -22,6 +23,9 @@ export interface PackagingPlan {
   spaFallback?: string;
 }
 export interface ShipConfig {
+  extensions: string[];
+  workspace: { app: string; buildDependencies: string[] } | null;
+  build: { publicEnv: Record<string, string>; secrets: string[]; npmrc: boolean };
   framework: string;
   deployment: "node" | "static";
   serverEntry: string | null;
@@ -54,6 +58,7 @@ export interface ServiceContext {
   readonly serviceName: string;
   readonly resourceName: string;
   readonly envPrefix: string;
+  volume(name: string): string;
   credential(name: string, developmentDefault: string): string;
   setting(name: string, fallback: string): string;
 }
@@ -62,6 +67,7 @@ export interface ServiceDefinition {
   readonly key: string;
   readonly label: string;
   readonly group: string;
+  readonly volumes?: readonly string[];
   compose(context: ServiceContext): ComposeService;
   appEnvironment(context: ServiceContext): Variables;
   databaseShell?(context: ServiceContext): readonly string[];
@@ -80,10 +86,29 @@ export interface ProjectManifest {
 export interface FrameworkAdapter {
   readonly key: string;
   readonly label: string;
+  readonly defaultDeployment?: "node" | "static";
   defaults(manifest: ProjectManifest, deployment?: "node" | "static"): Pick<ShipConfig, "scripts" | "port" | "outputDirectory" | "staticRouting">;
   validate(config: ShipConfig, manifest: ProjectManifest): string[];
   packaging(config: ShipConfig): PackagingPlan;
   developmentCommand(config: ShipConfig): readonly string[];
   productionCommand(config: ShipConfig): readonly string[];
   buildArguments?(config: ShipConfig): readonly string[];
+}
+
+/** Versioned, synchronous planning contract. Loading a module executes trusted host code. */
+export interface ShipExtension {
+  readonly apiVersion: 1;
+  readonly name: string;
+  readonly version: string;
+  readonly adapters?: readonly FrameworkAdapter[];
+  readonly services?: readonly ServiceDefinition[];
+  /** Text files published under ship/extensions/NAME/. */
+  readonly templates?: Readonly<Record<string, string>>;
+}
+export interface ExtensionRegistry {
+  readonly adapters: ReadonlyMap<string, FrameworkAdapter>;
+  readonly services: ReadonlyMap<string, ServiceDefinition>;
+  readonly extensions: readonly { readonly name: string; readonly version: string }[];
+  readonly templates: Readonly<Record<string, string>>;
+  readonly fingerprint: string;
 }
