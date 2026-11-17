@@ -86,6 +86,10 @@ jobs:
       - run: npm ci
       - name: Install headless Chromium and dependencies
         run: npx playwright install --with-deps --only-shell chromium
+      # Docker veth IPv6 address changes can abort Chromium's IPv4 loopback requests.
+      # This disposable runner's fixtures exercise 127.0.0.1, not IPv6 coverage.
+      - name: Keep new browser fixture interfaces IPv4-only
+        run: sudo sysctl -w net.ipv6.conf.default.disable_ipv6=1
       - name: Run browser HMR checks
         run: npm run test:browser > browser-test.log 2>&1
       - name: Show browser output

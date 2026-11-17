@@ -383,7 +383,14 @@ The repository remains private and npm publication has not occurred.
   plugin's missing-preamble error. Browser files were creating/removing Docker
   networks concurrently; they now run sequentially to avoid overlapping network
   setup with a different fixture's active browser. Verification of this harness
-  change is pending.
+  change passed all four HMR cases on the next runner, but Next's final 404
+  navigation still hit `ERR_NETWORK_CHANGED`. Sequencing alone was insufficient.
+  The ephemeral browser CI runner now disables IPv6 on newly created interfaces
+  before starting fixtures, avoiding Docker veth link-local address notifications
+  during IPv4 loopback requests. This CI-only setup follows the same failure mode
+  documented in [Ghost's browser tests](https://github.com/TryGhost/Ghost/blob/main/e2e/README.md#sign-in-page-never-renders-on-linux).
+  Browser assertions and retry behavior are unchanged. IPv6 coverage is not
+  established by these fixtures. Verification of this runner setup is pending.
 - Added [startup, shutdown and recovery](recovery.md) with operational steps and
   the remaining scope: disk/host/daemon failure, backup restoration, other database
   recovery, version upgrades and Docker behavior beyond Linux.
