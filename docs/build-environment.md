@@ -5,6 +5,10 @@ when Node containers start and copied into the private release directory as `.en
 it is not sent to the image build. Static production images receive no runtime
 environment file. Public frontend values must be supplied explicitly at build time.
 
+See [environment boundaries](environment.md) for development, runtime, public
+framework configuration and release-file behavior, and [external services](external-services.md)
+for application-owned database URLs.
+
 ## Configuration
 
 Add this section to `ship.json`:

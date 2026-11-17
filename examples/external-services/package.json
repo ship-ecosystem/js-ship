@@ -1,0 +1,17 @@
+{
+  "name": "ship-external-services-example",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "packageManager": "npm@12.2.2",
+  "scripts": {
+    "dev": "node --watch server.mjs",
+    "start": "node server.mjs",
+    "check:connections": "node check-connections.mjs"
+  },
+  "dependencies": {
+    "mongodb": "7.9.0",
+    "pg": "8.23.1",
+    "redis": "6.3.1"
+  }
+}

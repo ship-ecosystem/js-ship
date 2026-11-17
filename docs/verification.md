@@ -442,3 +442,34 @@ The repository remains private and npm remains unpublished after this milestone.
   passed the platform matrix again at `a565e87`. This final follow-up only records
   results. The repository remains private and npm remains unpublished.
   Repository visibility and npm publication remain unchanged.
+
+## External connections and environment documentation milestone
+
+- All 143 local unit/boundary tests passed under Node 22.23.5. New checks cover
+  external-only configuration, runtime environment selection, external-network
+  scope, MongoDB URI preservation/host overrides and static release environment
+  boundaries. The static release boundary test uses a mocked image export.
+- The installed 119-file npm tarball passed CLI, API, schema and consumer
+  TypeScript checks. The example's database clients remain application
+  dependencies; the SDK still has no runtime dependencies.
+- Three focused local Docker cases passed: the new external-services fixture
+  and both existing npm/pnpm build-credential cases after extracting their shared
+  image scanner. Authenticated PostgreSQL, Redis and MongoDB run in a separate
+  project with application users and no published provider ports. Checks cover
+  development, production workers, environment recreation, credential failure
+  with redacted output, explicit deploy probes and a copied source-free release.
+  App shutdown leaves provider containers intact. Saved app-image layers and
+  metadata exclude the fixture's runtime credentials and environment markers.
+- Added [external connections](external-services.md),
+  [environment boundaries](environment.md) and the repository's
+  `examples/external-services` application with pinned client dependencies.
+  Hosted-provider TLS, Atlas SRV discovery, failover and cross-host connectivity
+  remain unverified. The local provider fixture uses a shared Docker network
+  without TLS; it does not establish those hosted-provider properties.
+- The prepared Docker matrix now contains 17 suites and 37 cases. This milestone
+  did not rerun the full Docker/browser suites or GitHub CI. The four package
+  workflows are disabled on GitHub at the user's request to conserve Actions
+  minutes; only an explicit pre-release CI authorization permits re-enabling
+  them. Dependabot update checks remain enabled. Further verification stays local.
+
+The repository remains private and npm remains unpublished.

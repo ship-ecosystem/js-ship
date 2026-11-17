@@ -6,7 +6,11 @@ membership does not grant ownership of the npm name. The first successful npm
 publish creates the package; a repository metadata URL alone does not create it.
 
 Nothing in the preparation below publishes a package. The current manifest keeps
-`private: true` and `0.1.0-dev.0`. The publishing workflow runs a preview on relevant
+`private: true` and `0.1.0-dev.0`. GitHub Actions workflows are currently disabled
+to conserve the free account's remaining minutes. Continue previews locally; do
+not enable or dispatch workflows until the user authorizes pre-release CI.
+
+When enabled, the publishing workflow runs a preview on relevant
 changes; actual publication requires an explicit manual dispatch on a prepared
 prerelease tag with `publish` selected. There is no automatic tag-triggered publish.
 

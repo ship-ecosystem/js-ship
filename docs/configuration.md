@@ -52,6 +52,9 @@ must also be compatible with the particular application and framework version.
 See [framework deployment modes](frameworks.md), [build environment](build-environment.md),
 [workspaces](workspaces.md), [extensions](extensions.md), and [MongoDB](mongodb.md) for the corresponding configuration options and boundaries.
 
+Applications connecting to hosted or independently managed databases can follow
+[external services](external-services.md) and [environment boundaries](environment.md).
+
 ## Tooling integration
 
 The npm tarball includes the schema and exports it as `js-ship/schema.json`.

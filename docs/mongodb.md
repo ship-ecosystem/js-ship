@@ -25,7 +25,9 @@ ship db
 change-stream compatibility. It provides no redundancy. `standalone` is explicit
 and does not provide these replica-set features. This is not a managed, multi-node
 production cluster. External MongoDB/Atlas connections can be supplied through
-your runtime `MONGODB_URI` without selecting a local MongoDB service.
+your runtime `MONGODB_URI` without selecting a local MongoDB service. Omit
+`MONGODB_HOST` and matching named host keys to retain the provider URI; see
+[external services](external-services.md).
 
 MongoDB runs from a project-owned image based on `mongo:8.0`. Ship publishes
 `ship/mongodb/` bootstrap/health files. Named instances share this image; each

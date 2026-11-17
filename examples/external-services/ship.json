@@ -1,0 +1,8 @@
+{
+  "framework": "generic",
+  "deployment": "node",
+  "node": "24",
+  "services": {},
+  "additionalServices": [],
+  "deployCommands": [["npm", "run", "check:connections"]]
+}

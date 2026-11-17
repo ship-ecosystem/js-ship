@@ -87,7 +87,9 @@ Implemented with planning, output-file and bootstrap tests:
 
 - MySQL, Mailpit, Meilisearch.
 - Garage, SeaweedFS, RustFS, Silo, browser-test services.
-- External database documentation and public/client environment boundaries.
+- External PostgreSQL/Redis/MongoDB documentation and build/runtime/browser
+  environment boundaries implemented, with a runnable connection-probe example.
+  Extend live checks to hosted-provider TLS, Atlas SRV, failover and cross-host access.
 - MongoDB failure recovery checks added for unhealthy startup, process crashes,
   manual stops and credential mismatch. Extend coverage to version upgrades,
   interrupted first initialization and backup restoration.
@@ -98,6 +100,10 @@ Complete the remaining package work first, then make the GitHub repository publi
 and publish a clearly marked npm prerelease for public testing. Authenticated
 private-registry download verification is deferred; do not block this work on it.
 The development repository remains private and the npm package remains unpublished.
+
+GitHub Actions test workflows are temporarily disabled to conserve the free
+account's remaining minutes. Continue local checks; re-enable and run CI only when
+the user authorizes the pre-release verification.
 
 ## Before public beta
 

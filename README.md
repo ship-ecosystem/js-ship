@@ -23,7 +23,10 @@ npm/pnpm registry configuration are covered in [build environment](docs/build-en
 [the spec](docs/spec.md) and [roadmap](docs/roadmap.md) for their scope and status.
 
 Interactive setup and automation flags, plus `doctor --json` diagnostics, are
-documented in [initialization and diagnostics](docs/usability.md).
+documented in [initialization and diagnostics](docs/usability.md). External
+PostgreSQL/Redis/MongoDB connections and a runnable repository example are covered
+in [external services](docs/external-services.md); build/runtime/browser values
+are explained in [environment boundaries](docs/environment.md).
 
 ## Run from this checkout
 

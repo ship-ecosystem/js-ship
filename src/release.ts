@@ -90,7 +90,7 @@ export async function assembleRelease(root: string, config: ShipConfig, tag: str
     }
     if (config.deployCommands.length) await writeFile(join(stage, "deploy-commands.sh"), deployScript(config, compose), { mode: 0o700 });
     await writeFile(join(stage, "release.json"), JSON.stringify({ tag, ship: { package: "js-ship", version: VERSION }, extensions: { definitions: registry.extensions, fingerprint: registry.fingerprint }, runtimePolicy: { minimums: NODE_MINIMUMS, baseImages: IMAGES }, images }, null, 2) + "\n");
-    await writeFile(join(stage, "README.md"), [`# Release ${tag}`, "", "Requires Docker Engine and Compose v2. From this directory:", "", "```sh",
+    await writeFile(join(stage, "README.md"), [`# Release ${tag}`, "", "Requires Docker Engine and Compose 2.24.0+. From this directory:", "", "```sh",
       ...images.map(entry => `docker load -i ${entry.file}`), ...(config.deployCommands.length ? ["sh deploy-commands.sh"] : []), "docker compose up -d", "```", "",
       "This directory contains production secrets in .env. Keep it private.", "Production ports are disabled by default; connect your reverse proxy to the Docker network.", ""].join("\n"));
     await rename(stage, destination);
