@@ -37,7 +37,7 @@ async function appendRules(path: string, rules: readonly string[]): Promise<void
   if (missing.length) await writeFile(path, `${current}${current && !current.endsWith("\n") ? "\n" : ""}\n# JavaScript Ship\n${missing.join("\n")}\n`);
 }
 
-export async function initProject(root: string, options: InitOptions = {}, registry?: ExtensionRegistry): Promise<ShipConfig> {
+export async function planInitProject(root: string, options: InitOptions = {}, registry?: ExtensionRegistry): Promise<{ config: ShipConfig; registry: ExtensionRegistry; existing: Record<string, unknown> }> {
   const rootManifest = await readManifest(root);
   const path = resolve(root, "ship.json");
   const raw = await exists(path) ? await readJson(path) : {};
@@ -87,16 +87,21 @@ export async function initProject(root: string, options: InitOptions = {}, regis
   await buildProjectCompose(config, root, "development", "local", registry);
   await buildProjectCompose(config, root, "production", "local", registry);
   if (problems.length) throw new ConfigError(problems);
+  return { config, registry, existing };
+}
+
+export async function initProject(root: string, options: InitOptions = {}, registry?: ExtensionRegistry): Promise<ShipConfig> {
+  const { config, registry: selectedRegistry, existing } = await planInitProject(root, options, registry);
   // All validation happens before publishing any files.
   await mkdir(resolve(root, "ship"), { recursive: true });
-  for (const [filename, contents] of Object.entries(await renderTemplates(config, await resolveWorkspace(config, root), registry))) {
+  for (const [filename, contents] of Object.entries(await renderTemplates(config, await resolveWorkspace(config, root), selectedRegistry))) {
     const destination = resolve(root, "ship", filename);
     if (filename === "ship.schema.json" || options.force || !(await exists(destination))) {
       await mkdir(dirname(destination), { recursive: true });
       await writeFile(destination, contents, { mode: filename.endsWith(".sh") ? 0o755 : 0o644 });
     }
   }
-  await writeFile(path, JSON.stringify({ $schema: existing.$schema ?? "./ship/ship.schema.json", ...config }, null, 2) + "\n");
+  await writeFile(resolve(root, "ship.json"), JSON.stringify({ $schema: existing.$schema ?? "./ship/ship.schema.json", ...config }, null, 2) + "\n");
   await appendRules(resolve(root, ".dockerignore"), [".ship-secrets", "**/.npmrc", "**/.env", "**/.env.*", "**/node_modules", "node_modules", "dist/ship", ".git", ".env", ".env.*", "!.env.example", "*.tgz", ".npmrc", "ship/.gatsby-static.json"]);
   const ignorePath = resolve(root, ".dockerignore");
   const ignore = await readFile(ignorePath, "utf8");

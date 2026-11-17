@@ -46,6 +46,14 @@ try {
   run([cli, '--project-directory', app, 'init', '--database', 'mongodb', '--no-interaction'], consumer);
   await writeFile(join(app, '.env.production'), 'MONGODB_PASSWORD=package-check-app\nMONGODB_ROOT_PASSWORD=package-check-admin\n', { mode: 0o600 });
   run([cli, '--project-directory', app, 'config:test'], consumer);
+  const doctor = spawnSync(process.execPath, [cli, '--project-directory', app, 'doctor', '--json'], { cwd: consumer, encoding: 'utf8', env: process.env });
+  assert.ok([0, 1].includes(doctor.status)); assert.equal(doctor.stderr, '');
+  const diagnostics = JSON.parse(doctor.stdout);
+  assert.equal(diagnostics.ok, doctor.status === 0); assert.ok(Array.isArray(diagnostics.checks));
+  assert.ok(diagnostics.checks.some(check => check.name === 'project' && check.status === 'ok'));
+  assert.ok(!diagnostics.checks.some(check => check.name === 'project' && check.status === 'error'));
+  await assert.rejects(stat(join(app, 'ship/docker-compose.generated.yml')));
+
   await mkdir(site);
   await writeFile(join(site, 'package.json'), JSON.stringify({ private: true, type: 'commonjs', packageManager: 'npm@12.2.2',
     dependencies: { gatsby: '5.16.1' }, scripts: { dev: 'gatsby develop', build: 'gatsby build' } }));

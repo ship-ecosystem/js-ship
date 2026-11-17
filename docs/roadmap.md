@@ -79,7 +79,9 @@ Implemented with planning, output-file and bootstrap tests:
 - Extend browser HMR coverage beyond Vite React/Vue/Svelte and add other browsers.
 - Broader subpath support, additional build tools and framework version matrices.
 - Gatsby SSR/DSG would require a separate runtime strategy.
-- Interactive init and fully equivalent non-interactive options.
+- Interactive init implemented with workspace/framework/service selection,
+  preflight review and cancellation before project writes. All choices have
+  equivalent flags; non-interactive and CI behavior is preserved.
 
 ## Infrastructure
 
@@ -118,6 +120,9 @@ The development repository remains private and the npm package remains unpublish
   OIDC for publication. npm ownership bootstrap, the GitHub `npm` environment
   and the package trusted-publisher settings remain account-side release steps.
   See [npm release preparation](npm-release.md). The name remains `js-ship`.
-- Optional Mutagen integration and richer doctor recovery hints.
+- Doctor recovery hints and JSON output implemented, including incomplete-project
+  diagnosis, Docker/Compose checks and service-state guidance without collecting
+  container credentials/logs. Extend diagnosis for custom overrides and remote hosts.
+- Optional Mutagen integration.
 
 Current local results and their limits are recorded in [verification](verification.md).

@@ -9,8 +9,10 @@ ship doctor
 ship logs mongodb
 ```
 
-Use the configured service name if it has been renamed. `doctor` reports Docker,
-Compose and container status; `logs` shows the selected service's output. A failed
+Use the configured service name if it has been renamed. `doctor` reports project,
+Docker, Compose and service-state checks with recovery hints; `doctor --json`
+provides the same checks for automation. See [initialization and diagnostics](usability.md).
+The command works with incomplete project files; `logs` shows the selected service's output. A failed
 `ship up` can leave containers present so you can inspect them. It does not roll
 back the stack or remove persistent data. Fix the reported cause and rerun
 `ship up`; use `ship down` first when you need to stop the whole development stack.

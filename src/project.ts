@@ -15,6 +15,13 @@ export async function loadProject(root: string, registry?: ExtensionRegistry): P
   registry ??= await loadExtensions(root, config.extensions);
   const problems = await projectProblems(config, root, registry);
   problems.push(...await templateProblems(config, root, registry));
+  problems.push(...await generatedFileProblems(config, root, registry));
+  if (problems.length) throw new ConfigError(problems);
+  return config;
+}
+
+export async function generatedFileProblems(config: ShipConfig, root: string, registry: ExtensionRegistry): Promise<string[]> {
+  const problems: string[] = [];
   const mongo = Object.values(config.services).includes("mongodb") || config.additionalServices.some(s => s.service === "mongodb");
   for (const filename of [...Object.keys(registry.templates), "Dockerfile", "runtime-version.mjs", "check-runtime.mjs", "dev-entrypoint.sh", "app-entrypoint.mjs", "prepare-output.mjs", "output.json",
     ...(config.framework === "gatsby" ? ["gatsby-adapter.cjs"] : []),
@@ -22,8 +29,7 @@ export async function loadProject(root: string, registry?: ExtensionRegistry): P
     ...(adapterFor(config, registry).packaging(config).kind === "static" ? ["nginx.conf"] : [])]) {
     if (!(await exists(resolve(root, "ship", filename)))) problems.push(`ship/${filename} is missing; run ship init.`);
   }
-  if (problems.length) throw new ConfigError(problems);
-  return config;
+  return problems;
 }
 
 export async function composePrefix(root: string, config: ShipConfig, environment: Environment, tag = "local", options: { refreshApp?: boolean; registry?: ExtensionRegistry } = {}): Promise<{ prefix: string[]; model: ComposeModel }> {

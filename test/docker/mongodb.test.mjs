@@ -116,6 +116,13 @@ test('MongoDB blocks unhealthy startup and recovers from crashes, manual stops a
   await writeFile(override, JSON.stringify({ services: { mongodb: { healthcheck: {
     test: ['CMD', 'false'], interval: '1s', timeout: '5s', retries: 2, start_period: '0s'
   } } } }));
+  const doctor = async () => {
+    let output;
+    try { output = await ship(['doctor', '--json']); }
+    catch (error) { assert.equal(error.exitCode, 1); output = error.stdout; }
+    for (const secret of [password, rootPassword, wrongPassword]) assert.ok(!output.includes(secret), 'doctor omits runtime credentials');
+    return JSON.parse(output);
+  };
   const rejectsReadiness = async () => assert.rejects(ship(['up']), error => {
     const output = error.stdout + error.stderr;
     assert.match(output, /unhealthy|dependency failed/i);
@@ -124,6 +131,10 @@ test('MongoDB blocks unhealthy startup and recovers from crashes, manual stops a
     return true;
   });
   await rejectsReadiness();
+  const blockedReport = await doctor();
+  assert.equal(blockedReport.ok, false);
+  assert.equal(blockedReport.checks.find(check => check.name === 'mongodb').status, 'error');
+  assert.ok(blockedReport.checks.find(check => check.name === 'mongodb').hint.includes('Preserve data/config volumes'));
   assert.equal((await inspect(await idFor('app'))).State.Running, false, 'unhealthy dependency must block application startup');
   await rm(override);
   await ship(['up']);
@@ -153,6 +164,7 @@ test('MongoDB blocks unhealthy startup and recovers from crashes, manual stops a
   await mongo(persisted + `const session=c.startSession();session.startTransaction();session.getDatabase(process.env.MONGO_INITDB_DATABASE).records.insertOne({_id:'after-crash'});session.commitTransaction();session.endSession();`);
   assert.deepEqual(volumeIdentity(await inspect(mongoId)), volumes);
   assert.equal(await keyDigest(), key);
+  assert.equal((await doctor()).ok, true);
   await compose(['stop', '--timeout', '10', 'mongodb']);
   const stopped = await inspect(mongoId);
   await delay(1500);
@@ -171,6 +183,9 @@ test('MongoDB blocks unhealthy startup and recovers from crashes, manual stops a
   await until(async () => {
     try { await mongo(persisted); return true; } catch { return false; }
   }, 'existing application credentials to remain usable');
+  const mismatchReport = await doctor();
+  assert.equal(mismatchReport.ok, false);
+  assert.equal(mismatchReport.checks.find(check => check.name === 'mongodb').status, 'error');
   const unhealthy = await inspect(mismatchId);
   assert.equal(unhealthy.State.Health.Status, 'unhealthy');
   for (const entry of unhealthy.State.Health.Log) for (const secret of [password, rootPassword, wrongPassword]) {
@@ -179,6 +194,7 @@ test('MongoDB blocks unhealthy startup and recovers from crashes, manual stops a
   await writeFile(join(root, '.env'), originalEnv, { mode: 0o600 });
   await rm(override);
   await ship(['up']);
+  assert.equal((await doctor()).ok, true);
   await mongo(persisted + `if(app.records.countDocuments({_id:'after-crash'})!==1)throw new Error('post-crash transaction lost');`);
   assert.deepEqual(volumeIdentity(await inspect(await idFor('mongodb'))), volumes);
   assert.equal(await keyDigest(), key);

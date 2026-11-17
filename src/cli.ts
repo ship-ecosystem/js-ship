@@ -1,7 +1,9 @@
 #!/usr/bin/env node
 import { resolve } from "node:path";
 import { parseArgs } from "node:util";
-import { initProject } from "./init.js";
+import { interactiveInitOptions, shouldPromptInit, terminalInitPrompter } from "./interactive.js";
+import { diagnoseProject, formatDoctor } from "./doctor.js";
+import { initProject, type InitOptions } from "./init.js";
 import { readConfig } from "./config.js";
 import { loadExtensions } from "./extensions.js";
 import { composePrefix, loadProject } from "./project.js";
@@ -33,13 +35,14 @@ Usage: ship [--project-directory PATH] COMMAND [arguments]
   npm ARGUMENTS...           Run npm inside app (arguments passed unchanged)
   pnpm ARGUMENTS...           Run pnpm inside a pnpm app
   config:test                Check project and both Compose models, no Docker
-  doctor                     Report Docker/Compose versions and stack status
+  doctor [--json]            Diagnose project/Docker/service issues with recovery hints
   build [--no-cache]         Build project-owned production images
   release --tag TAG          Export a Docker-only release under dist/ship/TAG
 
 Adapters: generic, react, vue, angular, svelte, nestjs, fastify, expressjs,
           next, nuxt, sveltekit, astro, vitepress, tanstack-start, gatsby.
 Package managers: pinned npm and pnpm. Services: PostgreSQL, Redis, MongoDB.
+Init prompts in terminals; --no-interaction skips all questions.
 Deployment modes and verification status are documented in docs/frameworks.md.
 `;
 
@@ -65,14 +68,27 @@ async function main(argv: string[]): Promise<void> {
     const opts = options(args, { database: { type: "string" }, cache: { type: "string" }, framework: { type: "string" },
       "package-manager": { type: "string" }, "package-manager-version": { type: "string" }, deployment: { type: "string" },
       "angular-project": { type: "string" }, "mongodb-mode": { type: "string" }, workspace: { type: "string" }, force: { type: "boolean" }, "no-interaction": { type: "boolean" } });
-    await initProject(root, { ...(typeof opts.database === "string" ? { database: opts.database } : {}),
+    let initOptions: InitOptions = { ...(typeof opts.database === "string" ? { database: opts.database } : {}),
       ...(typeof opts.cache === "string" ? { cache: opts.cache } : {}), ...(typeof opts.framework === "string" ? { framework: opts.framework } : {}),
       ...(typeof opts["package-manager"] === "string" ? { packageManager: opts["package-manager"] } : {}),
       ...(typeof opts["package-manager-version"] === "string" ? { packageManagerVersion: opts["package-manager-version"] } : {}),
       ...(typeof opts.deployment === "string" ? { deployment: opts.deployment } : {}),
       ...(typeof opts["angular-project"] === "string" ? { angularProject: opts["angular-project"] } : {}),
-      ...(typeof opts["mongodb-mode"] === "string" ? { mongodbMode: opts["mongodb-mode"] } : {}), ...(typeof opts.workspace === "string" ? { workspace: opts.workspace } : {}), force: opts.force === true });
+      ...(typeof opts["mongodb-mode"] === "string" ? { mongodbMode: opts["mongodb-mode"] } : {}), ...(typeof opts.workspace === "string" ? { workspace: opts.workspace } : {}), force: opts.force === true };
+    if (shouldPromptInit(!!process.stdin.isTTY, !!process.stdout.isTTY, opts["no-interaction"] === true, process.env.CI)) {
+      const terminal = terminalInitPrompter();
+      try { initOptions = await interactiveInitOptions(root, initOptions, terminal.ask, message => console.log(message)); }
+      finally { terminal.close(); }
+    }
+    await initProject(root, initOptions);
     console.log("Initialized ship.json and ship/. Commit these files, then run ship up."); return;
+  }
+  if (command === "doctor") {
+    const opts = options(args, { json: { type: "boolean" } });
+    const report = await diagnoseProject(root, run);
+    console.log(opts.json ? JSON.stringify(report, null, 2) : formatDoctor(report));
+    if (!report.ok) process.exitCode = 1;
+    return;
   }
   const registry = await loadExtensions(root, (await readConfig(root)).extensions);
   const config = await loadProject(root, registry);
@@ -106,11 +122,6 @@ async function main(argv: string[]): Promise<void> {
   if (command === "down") {
     const opts = options(args, { volumes: { type: "boolean" } });
     await run([...prefix, "down", ...(opts.volumes ? ["--volumes"] : [])], root); return;
-  }
-  if (command === "doctor") {
-    noArgs(args);
-    await run(["docker", "version"], root); await run(["docker", "compose", "version"], root);
-    await run([...prefix, "ps", "--all"], root); return;
   }
   const exec = [...prefix, "exec", ...(!process.stdin.isTTY || !process.stdout.isTTY ? ["-T"] : [])];
   const applicationCommand = (target: string, argv: readonly string[]) => [...exec, target,

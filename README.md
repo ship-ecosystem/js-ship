@@ -22,10 +22,13 @@ and [MongoDB](docs/mongodb.md). Build variables, temporary secrets and private
 npm/pnpm registry configuration are covered in [build environment](docs/build-environment.md). See
 [the spec](docs/spec.md) and [roadmap](docs/roadmap.md) for their scope and status.
 
+Interactive setup and automation flags, plus `doctor --json` diagnostics, are
+documented in [initialization and diagnostics](docs/usability.md).
+
 ## Run from this checkout
 
 Requires patched Node 22.23.5+, 24.22.3+ or 26.13.1+ within those majors, npm,
-Docker Engine/Desktop and Compose v2. The application must
+Docker Engine/Desktop and Compose 2.24.0+. The application must
 have one committed npm or pnpm lockfile. Init detects the framework and package
 manager from package.json and lockfiles without running application scripts on the
 host. Explicitly configured [extensions](docs/extensions.md) do execute host code.

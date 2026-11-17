@@ -398,3 +398,29 @@ The repository remains private and npm publication has not occurred.
   recovery, version upgrades and Docker behavior beyond Linux.
 
 The repository remains private and npm remains unpublished after this milestone.
+
+## Initialization and diagnostics milestone (local)
+
+- All 140 unit/boundary tests passed under Node 22.23.5. New checks cover
+  preflight-only planning, cancellation, flag/prompt parity, explicit flag
+  precedence, existing choices/template preservation, workspace app selection and
+  shared build order, pnpm pin entry, and multi-application Angular selection.
+- Local POSIX PTY smoke checks exercised the real CLI: confirmation wrote the
+  project and exited 0; no/Ctrl+C exited 130 and EOF exited 1, without creating
+  project files. Windows/macOS terminal interaction was not exercised manually.
+- Doctor checks cover missing/invalid projects and directories, missing templates,
+  absent Docker/Compose, daemon access, old Compose versions, unhealthy/restarting/
+  stopped/starting/paused/missing/orphan services, cancellation and malformed
+  metadata. Tests verify project scoping, excluded one-off containers, credential
+  omission and absence of generated-file/Compose mutations.
+- A focused live MongoDB recovery run passed with real doctor JSON checks for
+  unhealthy and recovered services and omitted runtime credentials. No database
+  data/key volume was removed during recovery; only fixture teardown removes them.
+- The installed 117-file tarball passed CLI, API, schema and consumer TypeScript
+  checks, including doctor JSON on an initialized consumer. Docker absence is an
+  expected diagnostic result on OS runners, not a package-install failure.
+- Added [initialization and diagnostics](usability.md), updated the recovery guide
+  and recorded the generated models' Compose 2.24.0+ requirement. Shared planning
+  and generated-file validation retain the existing non-interactive behavior.
+  Remote verification for this revision is pending. Repository visibility and npm
+  publication remain unchanged.
