@@ -339,8 +339,17 @@ The repository remains private and npm publication has not occurred.
   credential-file paths and changelog inclusion before installation.
 - Workflow/Dependabot YAML parsed locally. The new workflow's preview has read-only
   permissions; its separately dispatched publication job uses OIDC and the tested
-  tarball without rebuilding. Remote preview verification is pending. Real OIDC
-  authorization, registry installation and provenance remain unverified until a
-  future authorized public release.
+  tarball without rebuilding. Both the [push preview](https://github.com/ship-ecosystem/js-ship/actions/runs/44126950020)
+  and [manual preview with publish=false](https://github.com/ship-ecosystem/js-ship/actions/runs/44127093489)
+  passed and skipped publication; the npm-package artifact was uploaded.
+  Real OIDC authorization, registry installation and provenance remain unverified
+  until a future authorized public release.
+- The [quality matrix](https://github.com/ship-ecosystem/js-ship/actions/runs/44126950743)
+  passed across Linux/macOS 15/Windows and Node 22/24/26, along with the npm audit.
+  The [cross-runner transfer](https://github.com/ship-ecosystem/js-ship/actions/runs/44126950172)
+  passed. All 34 Docker cases across sixteen suites and all six Chromium cases
+  passed again in [Docker/browser CI](https://github.com/ship-ecosystem/js-ship/actions/runs/44126950235).
+  These runs verified code revision `1c2dd1a`; the final follow-up only records
+  these results. The repository remains private and npm remains unpublished.
 - A read-only public registry lookup on November 17 returned E404 for `js-ship`.
   This does not reserve the name or establish account publishing rights.
