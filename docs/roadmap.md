@@ -66,6 +66,10 @@ Implemented with planning, output-file and bootstrap tests:
   ports, preserving an unchanged parent's state and document across edits.
 - Worker argv/shell crash and manual restarts, graceful child/app shutdown and
   interactive TTY execs passed. Template format 4 supervises process groups.
+- GitHub host quality/installed-package checks passed on Linux/macOS/Windows
+  across Node 22/24/26. All twelve Docker suite jobs and six Chromium cases passed.
+- A fixture release was exported on one GitHub runner and booted on another
+  without application sources, SDK installation, a build or registry pulls.
 
 ## Next: runtime verification and usability
 
@@ -87,15 +91,12 @@ Implemented with planning, output-file and bootstrap tests:
 ## Before public beta
 
 - Broaden runtime checks to longer shutdowns, infrastructure failures and host/platform variants.
-- Execute the prepared host CI across Linux/macOS/Windows and Node 22/24/26,
-  plus the twelve Docker suite jobs and Chromium HMR job, on GitHub.
 - Build/cache/secret environment separation and private npm registry support.
 - Runtime security-floor policy; image and dependency update automation.
 - Publish shared JSON Schema and stable extension loading contracts.
 - Workspace-aware builds and correct runtime dependency packaging.
-- Execute the prepared producer/consumer release-transfer workflow on separate
-  GitHub runners; its local export/consume check and installed-tarball checks pass.
-- Final npm name, repository metadata, provenance/trusted publishing and changelog.
+- Final npm name, provenance/trusted publishing and changelog; the private GitHub
+  repository and package repository metadata are configured.
 - Optional Mutagen integration and richer doctor recovery hints.
 
 Current local results and their limits are recorded in [verification](verification.md).

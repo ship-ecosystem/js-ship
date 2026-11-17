@@ -1,4 +1,4 @@
-# Local verification
+# Verification
 
 Verified on November 16–17, 2026 with Node 22.23.3, npm 11.20.0,
 TypeScript 5.9.3, Docker Engine 29.9.2 and Compose 5.6.1 on Linux.
@@ -150,23 +150,37 @@ npm run test:browser
 npm run test:transfer
 ```
 
-GitHub workflows are prepared in `.github/workflows/`: quality and installed
-packaging checks across Linux/macOS/Windows with Node 22/24/26, plus twelve Linux
-Docker suite jobs and a separate Chromium HMR job. Workflow YAML has been parsed locally; these jobs have not
-been executed on GitHub yet.
+## GitHub verification
+
+The development repository was created privately at
+[ship-ecosystem/js-ship](https://github.com/ship-ecosystem/js-ship). All three
+workflows passed on November 17, 2026:
+
+| Workflow | Verified scope | Result |
+| --- | --- | --- |
+| [Quality and npm packaging](https://github.com/ship-ecosystem/js-ship/actions/runs/44050780342) | Linux/macOS/Windows × Node 22/24/26; 99 unit tests and installed-tarball checks in each of nine jobs | Passed |
+| [Docker integration](https://github.com/ship-ecosystem/js-ship/actions/runs/44050780680) | Twelve Linux Docker suites / 27 cases, plus six Chromium browser cases | Passed |
+| [Release transfer between runners](https://github.com/ship-ecosystem/js-ship/actions/runs/44049710678) | Export on one runner, checksum verification and source-free boot on another | Passed |
+
+Quality and Docker results above cover code commit `2e2cec7`; release transfer
+passed on `536a19b`, before the subsequent VitePress test-fixture-only correction.
+The first Docker run exposed a VitePress fixture problem. It now uses the shared
+host-owned dependency metadata helper and retains startup diagnostics; the full
+corrected matrix passed. Host quality checks on Windows/macOS do not establish
+Docker Desktop behavior on those platforms.
 
 The `release-transfer.yml` workflow uses separate producer/consumer runners. Its
 standalone verifier is carried in the artifact; the consumer does not check out
 this repository or install the SDK. The local transfer check passed after deleting
 the producer fixture source and its image tag, then checking the archive checksum,
 runtime environment, non-root execution and booting with `--no-build --pull never`.
-This local check uses the same Docker daemon; the separate-host claim still needs
-the GitHub workflow result.
+The local check uses one Docker daemon. The successful GitHub workflow additionally
+confirms transfer between separate fresh runner environments, with no source checkout,
+SDK/npm installation, image build or registry pull on the consuming runner.
 
 ## Remaining verification
 
 Additional versions/package managers and framework options,
 browser HMR beyond the Vite cases above, Windows/macOS Docker behavior,
-a second clean
-Docker host, and security/release review remain before public beta. Successful
+and security/release review remain before public beta. Successful
 representative builds do not establish support for every framework version.
