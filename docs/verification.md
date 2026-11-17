@@ -295,4 +295,27 @@ host/port environment names are reserved, Compose-escaped public expressions are
 not treated as production credential requirements, newline-suffixed package-manager
 pins/release tags are rejected, and explicitly disabled service healthchecks use
 startup dependencies. All 123 unit/boundary tests and installed-package/type checks
-passed under Node 22.23.5. Remote verification for this revision is pending.
+passed under Node 22.23.5.
+
+The first remote run exposed cached Node patches below the reviewed floors.
+All setup-node steps now request the latest patch. At revision `35c4aa5`, all
+34 Docker cases across sixteen suites and all six Chromium cases passed in
+[Docker CI](https://github.com/ship-ecosystem/js-ship/actions/runs/44113006991).
+The [cross-runner release transfer](https://github.com/ship-ecosystem/js-ship/actions/runs/44113007064)
+also passed. Linux and Windows checks passed across Node 22/24/26; macOS Node 26
+passed before a subsequent catalog fix superseded that quality run.
+
+The activated image updater exposed a native editing failure with the JSON-syntax
+Compose catalog. Revision `e8eb8d3` switches it to `images/Dockerfile`, preserving
+every image reference and generated runtime policy. MongoDB minor-family updates
+are now excluded alongside the existing major-version exclusions. Local checks
+and the installed 107-file tarball passed again. The fresh
+[cross-runner release transfer](https://github.com/ship-ecosystem/js-ship/actions/runs/44116254112)
+passed. The [native image updater](https://github.com/ship-ecosystem/js-ship/actions/runs/44116268664)
+completed successfully, reading all catalog images and retaining MongoDB 8.0.
+Linux and Windows quality/package checks passed across all three Node majors,
+and npm audit passed. All 34 Docker cases and six Chromium cases passed again in
+[Docker CI](https://github.com/ship-ecosystem/js-ship/actions/runs/44116254253).
+After repeated unassigned macOS runner queues, quality CI now uses GitHub's
+explicit supported `macos-15` baseline rather than the rolling `macos-latest`
+label. The final quality matrix for that workflow change is pending.

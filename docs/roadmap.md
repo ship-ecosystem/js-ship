@@ -101,9 +101,9 @@ The development repository remains private and the npm package remains unpublish
 - Build environment separation and npm/pnpm registry secret mounting implemented;
   extend authenticated private-registry download coverage.
 - Reviewed Node floors, digest-pinned parent catalog, Dependabot configuration,
-  generated-artifact checks and scheduled npm audit implemented. Activate the
-  prepared configuration on GitHub and enable private vulnerability reporting
-  before public testing.
+  generated-artifact checks and scheduled npm audit implemented. Dependabot is
+  active on GitHub, including a successful native image-catalog update check.
+  Enable private vulnerability reporting before public testing.
 - Shared JSON Schema, offline editor integration and npm schema export implemented.
 - Extension API v1 implemented: explicit local JS/CJS modules, isolated validated
   registries, owned volumes, namespaced templates and project-specific schemas.
