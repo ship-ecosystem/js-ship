@@ -318,4 +318,8 @@ and npm audit passed. All 34 Docker cases and six Chromium cases passed again in
 [Docker CI](https://github.com/ship-ecosystem/js-ship/actions/runs/44116254253).
 After repeated unassigned macOS runner queues, quality CI now uses GitHub's
 explicit supported `macos-15` baseline rather than the rolling `macos-latest`
-label. The final quality matrix for that workflow change is pending.
+label. The final [quality matrix](https://github.com/ship-ecosystem/js-ship/actions/runs/44117566770)
+passed on Linux, macOS 15 and Windows across Node 22/24/26, including installed
+package and declaration checks, generated-artifact checks and the audit job.
+Windows explicitly skips the existing symlink boundary case; Linux/macOS run it.
+The repository remains private and npm publication has not occurred.
