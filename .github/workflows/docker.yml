@@ -1,0 +1,96 @@
+name: Docker integration
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'src/**'
+      - 'templates/**'
+      - 'test/**'
+      - 'examples/**'
+      - 'package*.json'
+      - '.github/workflows/docker.yml'
+  pull_request:
+    paths:
+      - 'src/**'
+      - 'templates/**'
+      - 'test/**'
+      - 'examples/**'
+      - 'package*.json'
+      - '.github/workflows/docker.yml'
+  schedule:
+    - cron: '23 4 * * 1'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: docker-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  integration:
+    name: ${{ matrix.suite }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    strategy:
+      fail-fast: false
+      matrix:
+        suite: [workflow, static, mongodb, dependencies, next, vite, servers, ssr, angular, gatsby, tanstack, lifecycle]
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6
+        with:
+          node-version: '24'
+          cache: npm
+      - run: npm ci
+      - run: npm run build
+      - name: Verify Docker and Compose
+        run: |
+          docker version
+          docker compose version
+      - name: Run isolated Docker suite
+        run: node --test test/docker/${{ matrix.suite }}.test.mjs > docker-test.log 2>&1
+      - name: Show test output
+        if: always()
+        run: cat docker-test.log
+      - name: Retain test output
+        if: failure()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: docker-${{ matrix.suite }}-output
+          path: docker-test.log
+          retention-days: 7
+
+  browser:
+    name: Chromium HMR
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6
+        with:
+          node-version: '24'
+          cache: npm
+      - run: npm ci
+      - name: Install headless Chromium and dependencies
+        run: npx playwright install --with-deps --only-shell chromium
+      - name: Run browser HMR checks
+        run: npm run test:browser > browser-test.log 2>&1
+      - name: Show browser output
+        if: always()
+        run: if [ -f browser-test.log ]; then cat browser-test.log; fi
+      - name: Retain browser failure evidence
+        if: failure()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: chromium-hmr-output
+          path: |
+            browser-test.log
+            test-results/
+          retention-days: 7

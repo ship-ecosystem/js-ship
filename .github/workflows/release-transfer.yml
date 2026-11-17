@@ -1,0 +1,73 @@
+name: Release transfer between runners
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'src/**'
+      - 'templates/**'
+      - 'examples/**'
+      - 'scripts/**'
+      - 'package*.json'
+      - '.github/workflows/release-transfer.yml'
+  pull_request:
+    paths:
+      - 'src/**'
+      - 'templates/**'
+      - 'examples/**'
+      - 'scripts/**'
+      - 'package*.json'
+      - '.github/workflows/release-transfer.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: release-transfer-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build:
+    name: Build fixture release
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6
+        with:
+          node-version: '24'
+          cache: npm
+      - run: npm ci
+      - run: npm run build
+      - name: Export the isolated test fixture
+        run: node scripts/check-release-transfer.mjs create "$RUNNER_TEMP/ship-release"
+      - name: Transfer fixture artifact
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: ship-release-fixture
+          path: ${{ runner.temp }}/ship-release/
+          # The fixture .env contains only a generated test nonce, no credentials.
+          include-hidden-files: true
+          retention-days: 1
+          compression-level: 1
+
+  consume:
+    name: Boot artifact on a fresh runner
+    needs: build
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      # No source checkout, npm installation or image build on this runner.
+      - uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6
+        with:
+          node-version: '24'
+      - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4
+        with:
+          name: ship-release-fixture
+          path: ${{ runner.temp }}/ship-release/
+      - name: Verify checksums and boot without build or pull
+        working-directory: ${{ runner.temp }}/ship-release
+        run: node verify-release-artifact.mjs
