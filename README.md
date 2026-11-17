@@ -15,7 +15,8 @@ pinned npm/pnpm workflows, PostgreSQL, Redis, MongoDB, named instances, producti
 workers and portable release assembly. All adapters have planning/template and
 output-file tests; representative framework builds and infrastructure also
 have live Docker coverage. Tested versions and remaining gaps are recorded in
-[verification notes](docs/verification.md). Modes and setup
+[verification notes](docs/verification.md). Operational steps are in
+[startup, shutdown and recovery](docs/recovery.md). Modes and setup
 requirements are documented in [framework deployment modes](docs/frameworks.md)
 and [MongoDB](docs/mongodb.md). Build variables, temporary secrets and private
 npm/pnpm registry configuration are covered in [build environment](docs/build-environment.md). See

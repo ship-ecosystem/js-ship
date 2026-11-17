@@ -86,7 +86,9 @@ Implemented with planning, output-file and bootstrap tests:
 - MySQL, Mailpit, Meilisearch.
 - Garage, SeaweedFS, RustFS, Silo, browser-test services.
 - External database documentation and public/client environment boundaries.
-- Extend MongoDB coverage to version upgrades and explicit failure recovery.
+- MongoDB failure recovery checks added for unhealthy startup, process crashes,
+  manual stops and credential mismatch. Extend coverage to version upgrades,
+  interrupted first initialization and backup restoration.
 
 ## Public testing approach
 
@@ -97,7 +99,8 @@ The development repository remains private and the npm package remains unpublish
 
 ## Before public beta
 
-- Broaden runtime checks to longer shutdowns, infrastructure failures and host/platform variants.
+- Slow app/worker shutdown and MongoDB failure recovery regression checks added.
+  Broaden checks to host/daemon failure, other infrastructure and Docker platform variants.
 - Build environment separation and npm/pnpm registry secret mounting implemented;
   extend authenticated private-registry download coverage.
 - Reviewed Node floors, digest-pinned parent catalog, Dependabot configuration,

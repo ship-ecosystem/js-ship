@@ -353,3 +353,26 @@ The repository remains private and npm publication has not occurred.
   these results. The repository remains private and npm remains unpublished.
 - A read-only public registry lookup on November 17 returned E404 for `js-ship`.
   This does not reserve the name or establish account publishing rights.
+
+## Failure recovery milestone (local)
+
+- Three lifecycle cases passed, including the new shell/npm process-tree case
+  with 12-second app/child shutdown handlers. The slow case uses the generated
+  Compose grace period without a shorter CLI timeout, verifies drain completion
+  and retains crash/manual-restart and controlling-terminal coverage.
+- Three MongoDB cases passed across focused runs. The new replica-set recovery
+  case blocks app startup with an unhealthy dependency, verifies an automatic
+  restart after killing mongod inside the fixture, confirms persisted records and
+  a new transaction, and checks that a manual stop remains stopped.
+- The recovery fixture also changes the root environment credential without
+  changing the persisted user. Startup fails, health output omits the credentials,
+  and the existing app user still authenticates. Restoring the original setting
+  restores healthy startup with the same data/configuration volumes and key hash.
+  Users are fully initialized before readiness faults are injected; interrupted
+  first-time initialization and application-driver reconnects are not covered.
+- All 126 unit/boundary checks and the installed 110-file tarball passed under
+  Node 22.23.5. Runtime implementation/templates did not change. The Docker suite
+  now contains 36 cases across sixteen suites; remote verification is pending.
+- Added [startup, shutdown and recovery](recovery.md) with operational steps and
+  the remaining scope: disk/host/daemon failure, backup restoration, other database
+  recovery, version upgrades and Docker behavior beyond Linux.

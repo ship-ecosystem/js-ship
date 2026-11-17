@@ -86,6 +86,9 @@ can update the advertised host for its known, single-member `rs0`. It refuses to
 reconfigure a multi-member or unrelated set. Upgrading to a managed/multi-node
 topology requires an explicit migration outside this bootstrap.
 
+For startup failures, crashes or mismatched persisted credentials, see
+[startup, shutdown and recovery](recovery.md).
+
 ## Verification
 
 ```sh
@@ -96,8 +99,11 @@ The MongoDB live test covers special-character credential encoding, app/admin
 privilege separation, real transactions and change streams, persistence through a
 service rename, image deduplication, and a source-free release with a second
 MongoDB instance. A separate standalone case verifies authentication, writes,
-connection URI and persistence through down/up. Both cases passed locally; see
-[verification notes](verification.md) for the environment and remaining checks.
+connection URI and persistence through down/up. The recovery case adds unhealthy
+startup, an unexpected mongod exit, manual stop/start and a mismatched persisted
+root credential. It checks retained records, a post-restart transaction, volume/key
+identity and quiet health diagnostics. See [verification notes](verification.md)
+for results, the environment and remaining checks.
 
 - [Official image initialization](https://hub.docker.com/_/mongo)
 - [Replica-set deployment](https://www.mongodb.com/docs/manual/tutorial/deploy-replica-set/)

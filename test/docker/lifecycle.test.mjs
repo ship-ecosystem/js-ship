@@ -16,7 +16,7 @@ async function until(check, label, timeout = 30_000) {
   throw new Error(`Timed out: ${label}`);
 }
 
-for (const form of ['argv', 'shell']) test(`${form}: worker crash restart, manual restart and graceful process-tree shutdown`, { timeout: 600_000 }, async t => {
+for (const { form, drain } of [{ form: 'argv', drain: 250 }, { form: 'shell', drain: 250 }, { form: 'shell', drain: 12_000 }]) test(`${form} (${drain}ms drain): worker crash restart, manual restart and graceful process-tree shutdown`, { timeout: 600_000 }, async t => {
   const root = await mkdtemp(join(tmpdir(), 'ship-lifecycle-'));
   const name = `ship-life-${randomBytes(5).toString('hex')}`;
   const env = { ...process.env, APP_PORT: '0' };
@@ -31,9 +31,9 @@ for (const form of ['argv', 'shell']) test(`${form}: worker crash restart, manua
   await writeFile(join(root, 'package.json'), JSON.stringify({ private: true, type: 'module', packageManager: 'npm@12.2.2', scripts: { dev: 'node --watch server.mjs', start: 'node server.mjs' } }));
   await writeFile(join(root, 'package-lock.json'), JSON.stringify({ lockfileVersion: 3, requires: true, packages: { '': {} } }));
   await writeFile(join(root, 'ship.json'), JSON.stringify({ name, publishPorts: true, processes: { worker: form === 'argv' ? ['node', 'worker.mjs'] : 'node worker.mjs' } }));
-  await writeFile(join(root, 'server.mjs'), `import {createServer} from 'node:http'; const server=createServer((req,res)=>res.end('lifecycle ready')); server.listen(Number(process.env.PORT),'0.0.0.0'); let stopping=false; process.on('SIGTERM',()=>{if(stopping)return; stopping=true; console.log(JSON.stringify({event:'app-signal'})); server.close(()=>setTimeout(()=>{console.log(JSON.stringify({event:'app-stopped'}));process.exit(0);},200));});`);
+  await writeFile(join(root, 'server.mjs'), `import {createServer} from 'node:http'; const server=createServer((req,res)=>res.end('lifecycle ready')); server.listen(Number(process.env.PORT),'0.0.0.0'); let stopping=false; process.on('SIGTERM',()=>{if(stopping)return; stopping=true; console.log(JSON.stringify({event:'app-signal'})); server.close(()=>setTimeout(()=>{console.log(JSON.stringify({event:'app-stopped'}));process.exit(0);},${drain}));});`);
   await writeFile(join(root, 'worker.mjs'), `import {spawn} from 'node:child_process'; import {randomUUID} from 'node:crypto'; const instance=randomUUID(); const log=event=>console.log(JSON.stringify({event,instance,pid:process.pid})); const child=spawn(process.execPath,['child.mjs',instance],{stdio:'inherit'}); log('worker-started'); let stopping=false; process.on('SIGTERM',()=>{if(stopping)return;stopping=true;log('worker-signal');child.once('exit',()=>{log('worker-stopped');process.exit(0);});});`);
-  await writeFile(join(root, 'child.mjs'), `const instance=process.argv[2]; const log=event=>console.log(JSON.stringify({event,instance,pid:process.pid})); const timer=setInterval(()=>{},1000); log('child-started'); let stopping=false; process.on('SIGTERM',()=>{if(stopping)return;stopping=true;log('child-signal');clearInterval(timer);setTimeout(()=>{log('child-stopped');process.exit(0);},250);});`);
+  await writeFile(join(root, 'child.mjs'), `const instance=process.argv[2]; const log=event=>console.log(JSON.stringify({event,instance,pid:process.pid})); const timer=setInterval(()=>{},1000); log('child-started'); let stopping=false; process.on('SIGTERM',()=>{if(stopping)return;stopping=true;log('child-signal');clearInterval(timer);setTimeout(()=>{log('child-stopped');process.exit(0);},${drain});});`);
   try {
     await ship(['init', '--no-interaction']); cfg = await readConfig(root);
     await writeFile(join(root, '.env.production'), '');
@@ -63,7 +63,7 @@ for (const form of ['argv', 'shell']) test(`${form}: worker crash restart, manua
     await run([...prod.prefix, 'exec', '-T', 'worker', 'node', '-e', `process.kill(${Number(first.pid)},'SIGKILL')`], root, { env });
     const second = await until(() => ready([first.instance]), 'automatic restart after a worker crash');
     assert.ok((await state()).RestartCount >= 1);
-    await run([...prod.prefix, 'stop', '--timeout', '5', 'worker'], root, { env });
+    await run([...prod.prefix, 'stop', ...(drain > 1000 ? [] : ['--timeout', '5']), 'worker'], root, { env });
     const stopped = await state();
     assert.equal(stopped.State.Running, false);
     assert.notEqual(stopped.State.ExitCode, 137, 'worker must drain rather than hit Docker SIGKILL');
@@ -76,7 +76,7 @@ for (const form of ['argv', 'shell']) test(`${form}: worker crash restart, manua
     await run([...prod.prefix, 'up', '-d', '--no-build', '--wait', 'worker'], root, { env });
     const third = await until(() => ready([first.instance, second.instance]), 'explicit restart of a stopped worker');
     assert.ok(third.instance);
-    await run([...prod.prefix, 'stop', '--timeout', '5', 'worker', 'app'], root, { env });
+    await run([...prod.prefix, 'stop', ...(drain > 1000 ? [] : ['--timeout', '5']), 'worker', 'app'], root, { env });
     assert.ok((await events('worker')).some(row => row.event === 'child-stopped' && row.instance === third.instance));
     assert.ok((await events('app')).some(row => row.event === 'app-stopped'), 'npm-launched application finishes its shutdown handler');
   } catch (error) {
