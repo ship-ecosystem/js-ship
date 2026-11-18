@@ -36,8 +36,9 @@ have one committed npm, pnpm or Yarn lockfile. Init detects the framework and pa
 manager from package.json and lockfiles without running application scripts on the
 host. Explicitly configured [extensions](docs/extensions.md) do execute host code.
 npm/pnpm/Yarn workspaces can select an app with `ship init --workspace apps/api` from
-the repository root. See [workspaces](docs/workspaces.md) for build order and
-packaging limits. See [Yarn 4 setup](docs/yarn.md) for its required node_modules
+the repository root. Next.js standalone and Nuxt Node can retain isolated runtime
+output at the selected app path. See [workspaces](docs/workspaces.md) for build
+order and packaging limits. See [Yarn 4 setup](docs/yarn.md) for its required node_modules
 linker and current scope. Bun is not implemented yet.
 
 ```sh

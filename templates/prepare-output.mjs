@@ -1,12 +1,25 @@
-import { cp, mkdir, readFile, rm, stat, writeFile } from 'node:fs/promises';
-import { dirname, join, resolve } from 'node:path';
+import { cp, lstat, mkdir, readFile, readdir, readlink, realpath, rm, stat, writeFile } from 'node:fs/promises';
+import { dirname, isAbsolute, join, relative, resolve, sep } from 'node:path';
 import { pathToFileURL } from 'node:url';
 
 async function exists(path) { try { await stat(path); return true; } catch (e) { if (e.code === 'ENOENT') return false; throw e; } }
 const safe = value => typeof value === 'string' && /^[A-Za-z0-9_.-]+(?:\/[A-Za-z0-9_.-]+)*$/.test(value) && !value.split('/').some(p => p === '.' || p === '..');
 function validate(spec) {
-  for (const value of [spec.directory, spec.entrypoint, ...(spec.runtimeFiles ?? [])].filter(v => v != null)) if (!safe(value)) throw new Error('Invalid output packaging path.');
+  for (const value of [spec.directory, spec.entrypoint, spec.workspaceApp, ...(spec.runtimeFiles ?? [])].filter(v => v != null)) if (!safe(value)) throw new Error('Invalid output packaging path.');
   if (spec.directory && ['ship', 'node_modules', 'package.json', 'package-lock.json', 'pnpm-lock.yaml', 'yarn.lock', '.yarn', '.yarnrc.yml'].includes(spec.directory.split('/')[0])) throw new Error('Output directory collides with Ship/dependency metadata.');
+}
+// A relocated isolated runtime must resolve all of its links within that tree.
+async function runtimeLinks(directory, root = directory) {
+  for (const entry of await readdir(directory, { withFileTypes: true })) {
+    const path = join(directory, entry.name);
+    if ((await lstat(path)).isSymbolicLink()) {
+      if (isAbsolute(await readlink(path))) throw new Error(`Isolated workspace runtime has an absolute symlink: ${relative(root, path)}. Use relocatable relative links.`);
+      let target;
+      try { target = relative(await realpath(root), await realpath(path)); }
+      catch { throw new Error(`Isolated workspace runtime has a dangling symlink: ${relative(root, path)}. Include its target in the framework output or runtimeFiles.`); }
+      if (target === '..' || target.startsWith(`..${sep}`) || isAbsolute(target)) throw new Error(`Isolated workspace runtime symlink escapes its output: ${relative(root, path)}. Include its target in the framework output or runtimeFiles.`);
+    } else if (entry.isDirectory()) await runtimeLinks(path, root);
+  }
 }
 export async function cleanOutput(spec, root) {
   validate(spec);
@@ -42,19 +55,22 @@ export async function prepareOutput(spec, root, destination) {
     await cp(join(root, source), join(destination, target), { recursive: true, verbatimSymlinks: true });
   };
   if (spec.runtime === 'next') {
-    await required(`${spec.directory}/server.js`);
+    const app = spec.workspaceApp ?? '.';
+    if (spec.workspaceApp && !(await exists(join(root, spec.directory, app, 'server.js')))) throw new Error(`Next.js workspace output requires ${spec.directory}/${app}/server.js; set output: 'standalone' and outputFileTracingRoot to the repository root.`);
+    await required(`${spec.directory}/${app}/server.js`);
     await copy(spec.directory, '.');
-    await copy('.next/static', '.next/static');
-    if (await exists(join(root, 'public'))) await copy('public');
+    await copy('.next/static', join(app, '.next/static'));
+    if (await exists(join(root, 'public'))) await copy('public', join(app, 'public'));
   } else {
     await required(spec.entrypoint);
-    await copy(spec.directory);
+    await copy(spec.directory, join(spec.workspaceApp ?? '.', spec.directory));
     if (spec.runtimeDependencies) {
       await copy('package.json');
       if (await exists(join(root, 'node_modules'))) await copy('node_modules');
     }
   }
-  for (const file of spec.runtimeFiles ?? []) await copy(file);
+  for (const file of spec.runtimeFiles ?? []) await copy(file, join(spec.workspaceApp ?? '.', file));
+  if (spec.workspaceApp) await runtimeLinks(destination);
 }
 
 if (process.argv[1] && import.meta.url === pathToFileURL(resolve(process.argv[1])).href) {

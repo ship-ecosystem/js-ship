@@ -36,7 +36,7 @@ export function buildCompose(config: ShipConfig, root: string, environment: Envi
   const selected = selections(config, environment, root, registry);
   const adapter = adapterFor(config, registry);
   const plan = adapter.packaging(config);
-  if (config.workspace && plan.kind === "node" && plan.runtime && plan.runtime !== "project") throw new ConfigError(["Workspace Node output currently supports generic, Express, Fastify and NestJS. Framework-isolated Node output needs a separate workspace packaging strategy."]);
+  if (config.workspace && plan.kind === "node" && plan.runtime && plan.runtime !== "project" && !["next", "nuxt"].includes(config.framework)) throw new ConfigError(["Workspace Node output currently supports generic, Express, Fastify, NestJS, Next.js standalone and Nuxt Node. Other framework-isolated Node output needs a separate workspace packaging strategy."]);
   if (config.workspace && config.framework === "gatsby") throw new ConfigError(["Gatsby workspace adapter placement is not implemented yet. Use a standalone Gatsby Ship project."]);
   if (plan.kind === "static" && (Object.keys(config.processes).length || config.deployCommands.length || config.runtimeFiles.length)) throw new ConfigError(["Static images cannot run Node workers, deploy commands or runtimeFiles. Use a backend Ship project."]);
   const targetPort = production ? plan.port : config.port;

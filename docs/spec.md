@@ -26,8 +26,9 @@ An optional `workspace` object selects `app` and ordered `buildDependencies` pat
 Ship stays at the repository root and validates membership in root npm/pnpm/Yarn package
 patterns. Root lockfile authority and per-package development dependency volumes
 are preserved. Node project runtimes retain the pruned repository layout; static
-outputs are copied relative to the app. Isolated framework SSR outputs and Gatsby
-workspace placement fail explicitly. See [workspaces](workspaces.md). The public
+outputs are copied relative to the app. Next.js standalone and Nuxt Node preserve
+isolated workspace outputs; other isolated SSR outputs and Gatsby workspace
+placement fail explicitly. See [workspaces](workspaces.md). The public
 `buildProjectCompose` helper resolves filesystem layout asynchronously; the low-level
 `buildCompose` accepts resolved workspace paths as its optional fifth argument.
 

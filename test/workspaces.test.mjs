@@ -66,7 +66,7 @@ test('workspace selection and build dependencies reject unsafe and ambiguous inp
     { app: 'apps/api', buildDependencies: null }, { app: 'apps/api', buildDependencies: ['apps/api'] },
     { app: 'apps/api', buildDependencies: ['packages/shared', 'packages/shared'] }]) assert.throws(() => parseConfig({ workspace }, '/app'));
 });
-test('selected packages must be declared, dependency builds must exist and isolated SSR layouts fail explicitly', async t => {
+test('selected packages must be declared, dependency builds must exist and unsupported isolated SSR layouts fail explicitly', async t => {
   const root = await fixture(t);
   await assert.rejects(initProject(root, { workspace: 'packages/excluded/hidden' }), /not included/);
   await assert.rejects(initProject(root, { workspace: 'apps/missing' }), /ENOENT/);
@@ -75,9 +75,9 @@ test('selected packages must be declared, dependency builds must exist and isola
   await writeFile(join(root, 'ship.json'), JSON.stringify(raw));
   await assert.rejects(initProject(root), /needs a build script/);
   raw.workspace.buildDependencies = [];
-  raw.framework = 'next'; raw.deployment = 'node';
+  raw.framework = 'sveltekit'; raw.deployment = 'node';
   await writeFile(join(root, 'ship.json'), JSON.stringify(raw));
-  await writeFile(join(root, 'apps/api/package.json'), JSON.stringify({ dependencies: { next: '16.4.6' }, scripts: { dev: 'next dev', build: 'next build' } }));
+  await writeFile(join(root, 'apps/api/package.json'), JSON.stringify({ dependencies: { '@sveltejs/kit': '3.2.0', '@sveltejs/adapter-node': '6.0.2', vite: '8.3.8' }, scripts: { dev: 'vite dev', build: 'vite build' } }));
   await assert.rejects(initProject(root), /separate workspace packaging strategy/);
 });
 test('workspace directory symlinks cannot escape the repository', { skip: process.platform === 'win32' }, async t => {

@@ -37,7 +37,9 @@ is never evaluated on the host to discover these settings.
 Node mode requires `output: 'standalone'` in your existing Next config. Ship checks
 for `.next/standalone/server.js`, copies the traced standalone runtime, then adds
 `.next/static` and optional `public/`. It starts `node server.js` with
-`HOSTNAME=0.0.0.0` and `PORT`. Monorepo/custom distDir layouts are not supported.
+`HOSTNAME=0.0.0.0` and `PORT`. Workspace applications use a repository-root trace
+and preserve the app path; see [workspace layouts](workspaces.md#nextjs-standalone-workspaces).
+Custom distDir layouts remain unsupported.
 
 Static mode requires `output: 'export'`. Ship cleans the old output before building
 and requires a fresh `out/index.html`; an old export cannot accidentally pass the
@@ -49,8 +51,8 @@ not cause 403 responses in the default export layout. Older Next static template
 require review and `ship init --force` to pick up this routing fix.
 Next.js basePath/subpath support is not implemented yet; Ship requires `/`.
 
-Public build variables (`NEXT_PUBLIC_*`) are not runtime variables. Ship does not
-yet provide a public build-env allowlist; never put private values into them.
+Public build variables (`NEXT_PUBLIC_*`) are compiled into client output. Supply
+public literals through `build.publicEnv`; see [environment boundaries](environment.md).
 
 ## Nuxt and TanStack Start
 
@@ -58,6 +60,10 @@ Node mode selects `NITRO_PRESET=node-server` during the build and checks for
 `.output/server/index.mjs`. Only `.output/` is copied into the runtime. Configure
 the Nitro Vite plugin in TanStack Start; Rsbuild, edge and serverless targets are
 not supported by this adapter. Package detection recognizes React and Solid Start.
+
+Nuxt Node workspace applications preserve the selected app path around the
+generated bundle; see [workspace layouts](workspaces.md#nuxt-node-workspaces).
+TanStack Start workspace Node output remains unsupported.
 
 Nuxt static mode uses a `generate` package script that runs `nuxt generate` and
 serves `.output/public/`. TanStack Start static output is not implemented. Both

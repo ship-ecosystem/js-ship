@@ -13,7 +13,7 @@ const quote = (arg: string): string => `'${arg.replaceAll("'", "'\\''")}'`;
 const shell = (args: readonly string[]): string => args.map(quote).join(" ");
 export function templateSettings(config: ShipConfig, workspacePackages: readonly string[] = [], registry?: ExtensionRegistry): Record<string, unknown> {
   const plan = adapterFor(config, registry).packaging(config);
-  return { format: 8, packaging: JSON.stringify(plan), buildArguments: JSON.stringify(adapterFor(config, registry).buildArguments?.(config) ?? null), extensions: registry && (registry.extensions.length || config.extensions.length) ? registry.fingerprint : null, images: JSON.stringify(IMAGES), workspace: JSON.stringify(config.workspace), workspacePackages: JSON.stringify(workspacePackages), build: JSON.stringify({ publicEnv: Object.keys(config.build.publicEnv).sort(), secrets: config.build.secrets, npmrc: config.build.npmrc }), packageManager: config.packageManager, ...(config.packageManager === "yarn" ? { yarnNodeModules: 1 } : {}), framework: config.framework, deployment: config.deployment,
+  return { format: 8, packaging: JSON.stringify(plan), buildArguments: JSON.stringify(adapterFor(config, registry).buildArguments?.(config) ?? null), extensions: registry && (registry.extensions.length || config.extensions.length) ? registry.fingerprint : null, images: JSON.stringify(IMAGES), workspace: JSON.stringify(config.workspace), workspacePackages: JSON.stringify(workspacePackages), build: JSON.stringify({ publicEnv: Object.keys(config.build.publicEnv).sort(), secrets: config.build.secrets, npmrc: config.build.npmrc }), packageManager: config.packageManager, ...(config.packageManager === "yarn" ? { yarnNodeModules: 1 } : {}), ...(config.workspace && plan.kind === "node" && ["next", "nuxt"].includes(config.framework) ? { isolatedWorkspace: 1 } : {}), framework: config.framework, deployment: config.deployment,
     kind: plan.kind, outputDirectory: plan.outputDirectory, routing: plan.routing, basePath: config.basePath,
     entrypoint: plan.entrypoint ?? null, runtimeFiles: JSON.stringify(config.runtimeFiles), angularProject: config.angularProject,
     ...(config.framework === "gatsby" ? { gatsbyStaticHeaders: 1 } : {}),
@@ -71,7 +71,7 @@ export async function renderTemplates(config: ShipConfig, workspacePackages: rea
   files["check-runtime.mjs"] = `import { nodeRuntimeProblem } from './runtime-version.mjs';\nconst problem = nodeRuntimeProblem(process.versions.node, ${JSON.stringify(NODE_MINIMUMS)});\nif (problem) { console.error(problem); process.exitCode = 1; }\n`;
   files["ship.schema.json"] = JSON.stringify(createConfigSchema(registry), null, 2) + "\n";
   const spec = { framework: config.framework, kind: plan.kind, runtime: plan.runtime ?? "project", directory: plan.outputDirectory,
-    entrypoint: plan.entrypoint ?? null, runtimeDependencies: plan.runtimeDependencies ?? false, runtimeFiles: config.runtimeFiles };
+    entrypoint: plan.entrypoint ?? null, runtimeDependencies: plan.runtimeDependencies ?? false, runtimeFiles: config.runtimeFiles, workspaceApp: config.workspace?.app ?? null };
   files["output.json"] = JSON.stringify(spec, null, 2) + "\n";
   for (const name of ["app-entrypoint.mjs", "prepare-output.mjs", ...(config.framework === "gatsby" ? ["gatsby-adapter.cjs"] : [])]) files[name] = await readFile(new URL(`../templates/${name}`, import.meta.url), "utf8");
   if (Object.values(config.services).includes("mongodb") || config.additionalServices.some(s => s.service === "mongodb")) {

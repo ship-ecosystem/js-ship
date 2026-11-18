@@ -87,8 +87,8 @@ selected app directory. Package-manager proxies therefore operate in that app's
 workspace context. To operate at the root explicitly, use an app exec command
 that changes to `/app`.
 
-Node production builds prune development dependencies at the repository root and
-preserve the complete repository layout. This keeps local workspace links and
+Generic Node/Express/Fastify/NestJS production builds prune development dependencies
+at the repository root and preserve the complete repository layout. This keeps local workspace links and
 shared packages' runtime dependencies usable. This first strategy retains other
 workspace sources and production dependencies; it does not produce a minimal
 selected-app dependency closure. Production images have no source bind mounts,
@@ -101,11 +101,12 @@ install caching: source changes can invalidate the dependency layer. Existing
 
 ## Framework scope and verification
 
-Workspace Node packaging currently supports generic Node, Express, Fastify and
-NestJS. Framework-isolated Node outputs (Next standalone, Nuxt, SvelteKit, Astro,
-Angular SSR and TanStack Start) are rejected until their workspace output/link
-layouts have a dedicated packaging strategy. Gatsby workspace adapter placement
-is also rejected. Standalone framework support is unchanged.
+Workspace Node packaging supports generic Node, Express, Fastify and NestJS with
+the complete repository layout, and isolated Next.js standalone/Nuxt Node output
+with the layouts described below. SvelteKit, Astro, Angular SSR and TanStack Start
+workspace Node outputs remain rejected until their output/dependency layouts have
+a dedicated strategy. Gatsby workspace adapter placement is also rejected.
+Standalone framework support is unchanged.
 
 Static strategies use build output relative to the selected application. A real
 React/Vite workspace build has passed development serving, ordered shared-package
@@ -120,6 +121,74 @@ binaries to be declared by the workspace that invokes them; declare tools such
 as TypeScript in that package's development dependencies. The React/Vite
 workspace static fixture also passed with Yarn 4.18.1. Other package-manager
 versions and operating-system Docker variants require more coverage.
+
+## Next.js standalone workspaces
+
+For an application at `apps/web`, use `ship init --workspace apps/web` and configure
+Next's tracing root to the repository root. Ship does not execute next.config on
+the host or change this setting for you. For example, `apps/web/next.config.mjs`:
+
+```js
+import { fileURLToPath } from 'node:url';
+const root = fileURLToPath(new URL('../..', import.meta.url));
+export default {
+  output: 'standalone',
+  outputFileTracingRoot: root,
+  turbopack: { root },
+};
+```
+
+The build must produce
+`apps/web/.next/standalone/apps/web/server.js`. Ship copies the complete traced
+standalone tree into `/app`, preserving repository-relative dependency paths,
+then adds the selected app's `.next/static` and optional `public` under
+`/app/apps/web`. Production starts `node server.js` from `/app/apps/web`.
+A flattened standalone tree, a tracing root outside/different from the repository
+or a custom `distDir` is not supported by this strategy. Missing expected output
+fails the build with tracing-root guidance.
+
+Use `outputFileTracingIncludes` when Next needs runtime data or dynamic imports
+that its trace cannot discover. Those patterns are relative to the Next app,
+not the repository root. `serverExternalPackages` may be appropriate for packages
+that should remain external to the server bundle. Ship only packages what the
+framework emitted; it does not infer missing dependencies or copy every shared
+workspace into a standalone image. See [Next output tracing](https://nextjs.org/docs/app/api-reference/config/next-config-js/output).
+
+## Nuxt Node workspaces
+
+Select the app in the same way. Ship installs at the repository root, builds
+explicit shared dependencies in order, then builds Nuxt with
+`NITRO_PRESET=node-server`. It copies the app's generated `.output` into
+`/app/apps/web/.output`, and starts `node .output/server/index.mjs` from
+`/app/apps/web`. Root `node_modules`, workspace source folders and unrelated
+packages are not copied into that runtime. Shared code and runtime dependencies
+must be included by the generated Nitro output. See [Nuxt Node deployment](https://nuxt.com/docs/4.x/getting-started/deployment).
+
+For both isolated strategies, `runtimeFiles` remains relative to the selected app
+and is copied beneath its runtime app directory. Workers and explicit deploy
+commands use that same working directory and production environment. Supply
+self-contained/bundled worker or migration files and ensure their dependencies
+are present in the traced/bundled output; package-manager scripts and a complete
+workspace install are not supplied automatically. Use the generic Node workspace
+strategy when those commands need the complete repository dependency layout.
+
+Output validation rejects absolute or dangling symlinks and relative links
+escaping the isolated runtime. It validates relocatable links, not every dynamic runtime import.
+Review generated-file edits before `ship init --force` when changing packaging
+settings. The standard format-8 marker includes an isolated-workspace revision
+for these new strategies.
+
+Local representative checks cover npm/Next.js and npm/Nuxt shared-package imports,
+SSR, assets, workers and copied source-free releases. Planning checks cover
+npm/pnpm/Yarn. The Nuxt fixture emits an ESM shared library; a CommonJS shared
+library using `require('is-number')` produced a Nitro runtime interop failure
+(`isNumber is not a function`). Use an output format/configuration compatible
+with Nitro; Ship does not rewrite module interop. Next's fixture reads runtime
+data relative to the app's working directory and includes it explicitly in the
+trace; Turbopack's virtual `__dirname` did not work for that fixture's development
+bundle. Live pnpm/Yarn SSR-workspace builds, native dependencies, additional
+module formats/framework versions and other Docker host platforms need coverage. See
+[verification](verification.md).
 
 ## Programmatic Compose generation
 

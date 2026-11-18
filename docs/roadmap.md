@@ -122,7 +122,8 @@ the user authorizes the pre-release verification.
   registries, owned volumes, namespaced templates and project-specific schemas.
 - Root npm/pnpm/Yarn workspace installs, explicit app/build order, isolated development
   dependency volumes and layout-preserving Node/static packaging implemented.
-  Dedicated isolated-SSR workspace layouts and minimal dependency closures remain.
+  Next.js standalone and Nuxt Node workspace layouts implemented. Other isolated
+  SSR workspace layouts and minimal dependency closures remain.
 - Changelog, npm metadata checks and a preview/explicit-prerelease publishing
   workflow prepared; it retains the installed-package-tested artifact and uses
   OIDC for publication. npm ownership bootstrap, the GitHub `npm` environment

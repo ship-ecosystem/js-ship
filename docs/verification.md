@@ -505,3 +505,46 @@ The repository remains private and npm remains unpublished.
   suites and GitHub CI remain deferred under the Actions budget restriction.
   All four package workflows remain disabled. No npm publication or repository
   visibility change was made.
+
+
+## Next.js and Nuxt workspace runtime milestone
+
+- All 175 local unit/boundary tests passed under Node 22.23.5 with no skips.
+  New cases cover npm/pnpm/Yarn planning for Next.js and Nuxt workspace Node
+  output, worker working directories, template revision detection, repository-root
+  tracing, app-relative asset/runtime-file placement, and rejected missing,
+  absolute, dangling or escaping runtime links. The nine focused output cases
+  passed again after tightening the relative-link assertion.
+- The installed 120-file tarball passed CLI/API/schema/consumer TypeScript checks.
+  There are no new runtime dependencies or configuration fields. Isolated
+  workspace templates carry an extra revision marker; existing edited templates
+  require deliberate review before `ship init --force`.
+- A local Next.js 16.4.6/npm 12.2.2 workspace fixture passed on Node 24 Linux.
+  It builds a shared package with a transitive runtime dependency, preserves a
+  runtime data file through explicit output tracing, serves SSR/script/public
+  assets and boots a copied image archive after removal of the app/shared sources
+  and root manifests. The non-root runtime keeps `/app/apps/web` as its working
+  directory; workers and explicit deploy commands share its image/environment.
+  Unrelated workspace sources and shared source files are absent from the image.
+- A separate local Nuxt 4.6.4/npm 11.20.0 workspace fixture passed the same
+  development/shared-package, SSR/assets, worker, deploy-command and copied-release
+  checks. Its shared library emits ESM; only `.output` and explicit app-relative
+  runtime files are retained. Root node_modules and shared workspace directories
+  are absent from the production image.
+- The initial Next development fixture's `__dirname` file read resolved to a
+  Turbopack virtual `/ROOT` path. The passing fixture uses the known application
+  working directory and an explicit tracing include for runtime data. The initial
+  Nuxt CommonJS shared library using `require('is-number')` compiled but failed
+  at runtime with `isNumber is not a function`; the ESM output passes. Ship does
+  not rewrite framework module interop. These are representative tested output
+  formats, not arbitrary shared-library compatibility guarantees.
+- Live pnpm/Yarn SSR workspace builds, other module/native dependency shapes,
+  additional framework versions and Docker host platforms remain unverified.
+  SvelteKit, Astro, Angular SSR and TanStack Start isolated workspace Node output
+  remain rejected; Gatsby workspace placement remains unsupported. See
+  [workspace setup and limits](workspaces.md).
+- The prepared Docker matrix now contains 18 suites and 42 cases. Only the two
+  new framework cases ran locally for this milestone; the full Docker/browser
+  suites and GitHub CI remain deferred. The package workflows remain disabled
+  under the Actions budget restriction. The repository remains private and npm
+  remains unpublished.

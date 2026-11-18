@@ -10,7 +10,8 @@ public prerelease; they are not a stable compatibility promise.
   React, Vue, Angular, Svelte, NestJS, Fastify, Express, Next.js, Nuxt, SvelteKit,
   Astro, VitePress, TanStack Start and Gatsby, within the documented deployment modes.
 - Pinned npm/pnpm/Yarn 4 node_modules installs, explicit workspace selection and
-  ordered shared builds.
+  ordered shared builds, including isolated Next.js standalone/Nuxt Node workspace
+  runtimes.
 - PostgreSQL, Redis and authenticated MongoDB, including named instances and a
   single-member replica-set option for transactions and change streams.
 - Production workers, process supervision, health checks, CLI proxies and portable
@@ -25,6 +26,6 @@ public prerelease; they are not a stable compatibility promise.
 
 See [framework modes](docs/frameworks.md), [workspaces](docs/workspaces.md) and
 [verification](docs/verification.md) for supported configurations and tested limits.
-Bun, Yarn Plug'n'Play/older majors, Gatsby SSR/DSG and dedicated isolated-SSR
+Bun, Yarn Plug'n'Play/older majors, Gatsby SSR/DSG and the other isolated-SSR
 workspace layouts are not yet implemented. Container builds currently have representative Linux coverage;
 Linux/macOS/Windows quality checks cover the host CLI and installed npm package.
