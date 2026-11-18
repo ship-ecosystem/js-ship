@@ -9,7 +9,8 @@ public prerelease; they are not a stable compatibility promise.
 - Development environments and portable Docker releases for generic Node apps,
   React, Vue, Angular, Svelte, NestJS, Fastify, Express, Next.js, Nuxt, SvelteKit,
   Astro, VitePress, TanStack Start and Gatsby, within the documented deployment modes.
-- Pinned npm/pnpm installs, explicit workspace selection and ordered shared builds.
+- Pinned npm/pnpm/Yarn 4 node_modules installs, explicit workspace selection and
+  ordered shared builds.
 - PostgreSQL, Redis and authenticated MongoDB, including named instances and a
   single-member replica-set option for transactions and change streams.
 - Production workers, process supervision, health checks, CLI proxies and portable
@@ -24,6 +25,6 @@ public prerelease; they are not a stable compatibility promise.
 
 See [framework modes](docs/frameworks.md), [workspaces](docs/workspaces.md) and
 [verification](docs/verification.md) for supported configurations and tested limits.
-Yarn/Bun, Gatsby SSR/DSG and dedicated isolated-SSR workspace layouts are not yet
-implemented. Container builds currently have representative Linux coverage;
+Bun, Yarn Plug'n'Play/older majors, Gatsby SSR/DSG and dedicated isolated-SSR
+workspace layouts are not yet implemented. Container builds currently have representative Linux coverage;
 Linux/macOS/Windows quality checks cover the host CLI and installed npm package.

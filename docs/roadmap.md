@@ -75,7 +75,9 @@ Implemented with planning, output-file and bootstrap tests:
 
 - Extend version/package-manager/framework-option coverage beyond the representative
   live builds now available for all fourteen frameworks and Next.js export layouts.
-- Yarn support.
+- Yarn 4 node_modules support implemented: immutable installs, pinned container
+  distribution, CLI proxy and root workspace production pruning. Plug'n'Play,
+  older Yarn majors and Yarn private-registry authentication remain unsupported.
 - Extend browser HMR coverage beyond Vite React/Vue/Svelte and add other browsers.
 - Broader subpath support, additional build tools and framework version matrices.
 - Gatsby SSR/DSG would require a separate runtime strategy.
@@ -118,7 +120,7 @@ the user authorizes the pre-release verification.
 - Shared JSON Schema, offline editor integration and npm schema export implemented.
 - Extension API v1 implemented: explicit local JS/CJS modules, isolated validated
   registries, owned volumes, namespaced templates and project-specific schemas.
-- Root npm/pnpm workspace installs, explicit app/build order, isolated development
+- Root npm/pnpm/Yarn workspace installs, explicit app/build order, isolated development
   dependency volumes and layout-preserving Node/static packaging implemented.
   Dedicated isolated-SSR workspace layouts and minimal dependency closures remain.
 - Changelog, npm metadata checks and a preview/explicit-prerelease publishing

@@ -105,9 +105,11 @@ export function parseConfig(data: unknown, root: string): ShipConfig {
   const name = text("name", projectName(root));
   if (!NAME.test(name)) problems.push("name must start with a lowercase letter and contain lowercase letters, digits, hyphens or underscores.");
   const packageManager = text("packageManager", "npm");
-  if (!["npm", "pnpm"].includes(packageManager)) problems.push("packageManager must be npm or pnpm. Yarn and Bun are not implemented yet.");
+  if (!["npm", "pnpm", "yarn"].includes(packageManager)) problems.push("packageManager must be npm, pnpm or yarn. Bun is not implemented yet.");
   const packageManagerVersion = text("packageManagerVersion", packageManager === "npm" ? DEFAULT_NPM_VERSION : "");
   if (!EXACT_VERSION.test(packageManagerVersion)) problems.push("packageManagerVersion must be an exact stable version, such as 12.2.2.");
+  if (packageManager === "yarn" && !/^4\./.test(packageManagerVersion)) problems.push("Yarn support requires an exact Yarn 4 version with node_modules; Classic, Yarn 2/3 and Plug’n’Play are not supported.");
+  if (packageManager === "yarn" && build.npmrc) problems.push("build.npmrc applies to npm/pnpm only. Yarn private-registry authentication is not supported yet.");
   let scripts = { dev: "dev", build: null as string | null, start: "start" as string | null };
   if (data.scripts !== undefined) {
     if (!isObject(data.scripts)) problems.push("scripts must be an object.");

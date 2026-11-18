@@ -48,8 +48,12 @@ For npm, use the root `package.json`:
 }
 ```
 
-The `{ "packages": [...] }` form of the workspaces field is also accepted. For
-pnpm, use a root `pnpm-workspace.yaml` and pin pnpm in the root manifest:
+Yarn 4 also uses root manifest workspace declarations, with an exact
+`yarn@VERSION` pin and root `.yarnrc.yml` selecting `nodeLinker: node-modules`.
+See [Yarn setup and limits](yarn.md).
+
+The `{ "packages": [...] }` form of the workspaces field is also accepted for npm.
+For pnpm, use a root `pnpm-workspace.yaml` and pin pnpm in the root manifest:
 
 ```yaml
 packages:
@@ -68,7 +72,7 @@ stay inside the repository, including directory symlink targets. Nested lockfile
 and nested pnpm workspace roots are rejected. A package-level `packageManager`, if
 present, must agree with the root pin. Use dependency declarations supported by
 your package manager; npm local packages can use a matching workspace version,
-while pnpm supports `workspace:*` links.
+while pnpm and Yarn support `workspace:*` links.
 
 ## Development and production dependencies
 
@@ -78,7 +82,7 @@ in development. This handles hoisted npm modules and package-local pnpm links
 without populating host dependency folders. Volume identities depend on package
 paths, so service renaming does not reassign package dependencies.
 
-The app, `ship npm`/`ship pnpm` proxies, workers and deploy commands run from the
+The app, `ship npm`/`ship pnpm`/`ship yarn` proxies, workers and deploy commands run from the
 selected app directory. Package-manager proxies therefore operate in that app's
 workspace context. To operate at the root explicitly, use an app exec command
 that changes to `/app`.
@@ -108,10 +112,13 @@ React/Vite workspace build has passed development serving, ordered shared-packag
 builds, subpath assets and Node-free Nginx production packaging. Other static
 framework workspace modes still need representative live tests.
 
-npm 12.2.2 and pnpm 12.21.0 generic Node fixtures passed shared TypeScript-library
+npm 12.2.2, pnpm 12.21.0 and Yarn 4.18.1 generic Node fixtures passed shared TypeScript-library
 builds, runtime dependencies imported through that library, development-volume
 isolation, complete compiler removal (including pnpm virtual-store copies),
-non-root execution and source-free portable-release boot. Other package-manager
+non-root execution and source-free portable-release boot. Yarn requires build
+binaries to be declared by the workspace that invokes them; declare tools such
+as TypeScript in that package's development dependencies. The React/Vite
+workspace static fixture also passed with Yarn 4.18.1. Other package-manager
 versions and operating-system Docker variants require more coverage.
 
 ## Programmatic Compose generation

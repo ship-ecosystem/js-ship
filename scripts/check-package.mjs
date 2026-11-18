@@ -66,6 +66,16 @@ try {
   await cp(join(root, 'examples/node/package.json'), join(workspace, 'apps/api/package.json'));
   run([cli, '--project-directory', workspace, 'init', '--workspace', 'apps/api', '--no-interaction'], consumer);
   run([cli, '--project-directory', workspace, 'config:test'], consumer);
+  const yarn = join(work, 'yarn');
+  await cp(join(root, 'examples/node'), yarn, { recursive: true });
+  await rm(join(yarn, 'package-lock.json'));
+  const yarnManifest = JSON.parse(await readFile(join(yarn, 'package.json'), 'utf8'));
+  await writeFile(join(yarn, 'package.json'), JSON.stringify({ ...yarnManifest, packageManager: 'yarn@4.18.1' }));
+  await writeFile(join(yarn, 'yarn.lock'), '__metadata:\n  version: 8\n');
+  await writeFile(join(yarn, '.yarnrc.yml'), 'nodeLinker: node-modules\n');
+  run([cli, '--project-directory', yarn, 'init', '--no-interaction'], consumer);
+  run([cli, '--project-directory', yarn, 'config:test'], consumer);
+  assert.equal(JSON.parse(await readFile(join(yarn, 'ship.json'), 'utf8')).packageManager, 'yarn');
   const custom = join(consumer, 'custom');
   await cp(join(root, 'examples/node'), custom, { recursive: true });
   await writeFile(join(custom, 'ship.extensions.mjs'), `import { builtinAdapters } from ${JSON.stringify(pkg.name)};

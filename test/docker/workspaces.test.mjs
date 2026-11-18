@@ -9,7 +9,7 @@ import { readConfig } from '../../dist/config.js';
 import { composePrefix } from '../../dist/project.js';
 import { lockFixture, publishedPort, waitForResponse } from './support.mjs';
 
-for (const manager of ['npm', 'pnpm']) {
+for (const manager of ['npm', 'pnpm', 'yarn']) {
   test(`${manager}: workspace builds retain shared production dependencies and boot a source-free release`, { timeout: 600_000 }, async t => {
     const root = await mkdtemp(join(tmpdir(), 'ship-ws-docker-'));
     const portable = await mkdtemp(join(tmpdir(), 'ship-ws-portable-'));
@@ -26,8 +26,9 @@ for (const manager of ['npm', 'pnpm']) {
       await rm(portable, { recursive: true, force: true });
     });
     const files = {
-      'package.json': JSON.stringify({ name: 'workspace-root', private: true, packageManager: manager === 'npm' ? 'npm@12.2.2' : 'pnpm@12.21.0',
-        ...(manager === 'npm' ? { workspaces: ['apps/*', 'packages/*'] } : {}), devDependencies: { typescript: '5.9.3' } }),
+      'package.json': JSON.stringify({ name: 'workspace-root', private: true, packageManager: ({ npm: 'npm@12.2.2', pnpm: 'pnpm@12.21.0', yarn: 'yarn@4.18.1' })[manager],
+        ...(manager !== 'pnpm' ? { workspaces: ['apps/*', 'packages/*'] } : {}), devDependencies: { typescript: '5.9.3' } }),
+      ...(manager === 'yarn' ? { '.yarnrc.yml': 'nodeLinker: node-modules\n' } : {}),
       ...(manager === 'pnpm' ? { 'pnpm-workspace.yaml': "packages:\n  - 'apps/*'\n  - 'packages/*'\n" } : {}),
       'apps/api/package.json': JSON.stringify({ name: '@fixture/api', version: '1.0.0', type: 'module',
         dependencies: { '@fixture/shared': manager === 'npm' ? '1.0.0' : 'workspace:*' },
@@ -37,7 +38,7 @@ createServer((req,res)=>{res.setHeader('content-type','application/json');res.en
       'apps/api/build.mjs': `import assert from 'node:assert/strict'; import { value } from '@fixture/shared'; import { createRequire } from 'node:module'; import { mkdir,copyFile } from 'node:fs/promises';
 assert.equal(value,42); createRequire(import.meta.url).resolve('typescript'); await mkdir('dist',{recursive:true}); await copyFile('server.mjs','dist/server.mjs');`,
       'packages/shared/package.json': JSON.stringify({ name: '@fixture/shared', version: '1.0.0', type: 'module', exports: './dist/index.js',
-        dependencies: { 'is-number': '7.0.0' }, scripts: { build: 'tsc --target ES2022 --module NodeNext --moduleResolution NodeNext --outDir dist src/index.ts --skipLibCheck' } }),
+        dependencies: { 'is-number': '7.0.0' }, ...(manager === 'yarn' ? { devDependencies: { typescript: '5.9.3' } } : {}), scripts: { build: 'tsc --target ES2022 --module NodeNext --moduleResolution NodeNext --outDir dist src/index.ts --skipLibCheck' } }),
       'packages/shared/src/index.ts': "import isNumber from 'is-number'; export const value = isNumber('41') ? 42 : 0;",
       'ship.json': JSON.stringify({ name, publishPorts: true, workspace: { app: 'apps/api', buildDependencies: ['packages/shared'] } }),
       '.env.production': `RUNTIME_ONLY=${runtime}\n`,
@@ -50,12 +51,12 @@ assert.equal(value,42); createRequire(import.meta.url).resolve('typescript'); aw
     await ship(['init', '--no-interaction']);
     const cfg = await readConfig(root);
     dev = await composePrefix(root, cfg, 'development');
-    await ship(['up']);
+    try { await ship(['up']); } catch (error) { await run([...dev.prefix, 'logs', '--tail', '60'], root).catch(() => {}); throw error; }
     const devURL = `http://127.0.0.1:${await publishedPort(dev.prefix, root, 3000)}`;
     await waitForResponse(devURL);
     assert.equal((await (await fetch(devURL)).json()).shared, 42);
     const version = await ship([manager, '--version'], { capture: true });
-    assert.match(version, manager === 'npm' ? /12\.2\.2/ : /12\.21\.0/);
+    assert.match(version, manager === 'npm' ? /12\.2\.2/ : manager === 'pnpm' ? /12\.21\.0/ : /4\.18\.1/);
     for (const path of ['node_modules', 'apps/api/node_modules', 'packages/shared/node_modules']) assert.deepEqual(await readdir(join(root, path)), [], 'container installs must not populate host node_modules');
     await ship(['down']);
     await ship(['release', '--tag', 'workspace-test']);
@@ -78,7 +79,7 @@ assert.equal(value,42); createRequire(import.meta.url).resolve('typescript'); aw
   });
 }
 
-test('npm: React/Vite workspace builds shared packages and exports only static app output', { timeout: 600_000 }, async t => {
+for (const manager of ['npm', 'yarn']) test(`${manager}: React/Vite workspace builds shared packages and exports only static app output`, { timeout: 600_000 }, async t => {
   const root = await mkdtemp(join(tmpdir(), 'ship-ws-vite-'));
   const name = `ship-ws-vite-${randomBytes(4).toString('hex')}`;
   const env = { ...process.env, APP_PORT: '0' }, cli = resolve('dist/cli.js');
@@ -90,9 +91,9 @@ test('npm: React/Vite workspace builds shared packages and exports only static a
     await rm(root, { recursive: true, force: true });
   });
   const files = {
-    'package.json': JSON.stringify({ name: 'vite-workspace', private: true, workspaces: ['apps/*', 'packages/*'], packageManager: 'npm@12.2.2' }),
+    'package.json': JSON.stringify({ name: 'vite-workspace', private: true, workspaces: ['apps/*', 'packages/*'], packageManager: manager === 'yarn' ? 'yarn@4.18.1' : 'npm@12.2.2' }),
     'apps/web/package.json': JSON.stringify({ name: '@fixture/web', private: true, type: 'module',
-      dependencies: { react: '19.3.1', 'react-dom': '19.3.1', '@fixture/ui': '1.0.0' }, devDependencies: { vite: '8.3.8' },
+      dependencies: { react: '19.3.1', 'react-dom': '19.3.1', '@fixture/ui': manager === 'yarn' ? 'workspace:*' : '1.0.0' }, devDependencies: { vite: '8.3.8' },
       scripts: { dev: 'vite', build: 'vite build' } }),
     'apps/web/index.html': '<!doctype html><div id="app"></div><script type="module" src="/main.js"></script>',
     'apps/web/main.js': "import React from 'react';import{createRoot}from'react-dom/client';import{label}from'@fixture/ui';createRoot(document.getElementById('app')).render(React.createElement('h1',null,label));",
@@ -103,7 +104,8 @@ test('npm: React/Vite workspace builds shared packages and exports only static a
   for (const [path, content] of Object.entries(files)) {
     await mkdir(dirname(join(root, path)), { recursive: true }); await writeFile(join(root, path), content);
   }
-  await lockFixture(root);
+  if (manager === 'yarn') await writeFile(join(root, '.yarnrc.yml'), 'nodeLinker: node-modules\n');
+  await lockFixture(root, manager);
   await ship(['init', '--no-interaction']);
   const cfg = await readConfig(root);
   assert.equal(cfg.framework, 'react');

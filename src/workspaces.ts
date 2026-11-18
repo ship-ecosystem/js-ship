@@ -66,7 +66,7 @@ export async function workspacePackages(root: string, manager: PackageManagerNam
 }
 export async function resolveWorkspace(config: ShipConfig, root: string): Promise<string[]> {
   if (!config.workspace) return [];
-  if (config.packageManager === "npm" && await exists(resolve(root, "pnpm-workspace.yaml"))) throw new ConfigError(["An npm workspace cannot also contain pnpm-workspace.yaml."]);
+  if (config.packageManager !== "pnpm" && await exists(resolve(root, "pnpm-workspace.yaml"))) throw new ConfigError([`A ${config.packageManager} workspace cannot also contain pnpm-workspace.yaml.`]);
   const packages = await workspacePackages(root, config.packageManager);
   for (const path of [config.workspace.app, ...config.workspace.buildDependencies]) {
     if (!packages.includes(path)) throw new ConfigError([`Workspace ${path} is not included by the root workspace package patterns.`]);
@@ -81,7 +81,7 @@ export async function resolveWorkspace(config: ShipConfig, root: string): Promis
     const manifest = await readManifest(resolve(root, path));
     const declared = manifestManager(manifest);
     if (declared && (declared.name !== config.packageManager || declared.version !== config.packageManagerVersion)) throw new ConfigError([`Workspace ${path} declares a different packageManager; use the root pin consistently.`]);
-    for (const lock of ["package-lock.json", "npm-shrinkwrap.json", "pnpm-lock.yaml", "yarn.lock", "bun.lock", "bun.lockb", "pnpm-workspace.yaml"]) {
+    for (const lock of ["package-lock.json", "npm-shrinkwrap.json", "pnpm-lock.yaml", "yarn.lock", "bun.lock", "bun.lockb", "pnpm-workspace.yaml", ".yarnrc.yml", ".yarnrc"]) {
       if (await exists(resolve(root, path, lock))) throw new ConfigError([`Workspace ${path}/${lock} conflicts with the root lockfile/workspace. Remove nested package-manager authority.`]);
     }
   }

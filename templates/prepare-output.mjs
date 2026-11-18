@@ -6,7 +6,7 @@ async function exists(path) { try { await stat(path); return true; } catch (e) {
 const safe = value => typeof value === 'string' && /^[A-Za-z0-9_.-]+(?:\/[A-Za-z0-9_.-]+)*$/.test(value) && !value.split('/').some(p => p === '.' || p === '..');
 function validate(spec) {
   for (const value of [spec.directory, spec.entrypoint, ...(spec.runtimeFiles ?? [])].filter(v => v != null)) if (!safe(value)) throw new Error('Invalid output packaging path.');
-  if (spec.directory && ['ship', 'node_modules', 'package.json', 'package-lock.json', 'pnpm-lock.yaml'].includes(spec.directory.split('/')[0])) throw new Error('Output directory collides with Ship/dependency metadata.');
+  if (spec.directory && ['ship', 'node_modules', 'package.json', 'package-lock.json', 'pnpm-lock.yaml', 'yarn.lock', '.yarn', '.yarnrc.yml'].includes(spec.directory.split('/')[0])) throw new Error('Output directory collides with Ship/dependency metadata.');
 }
 export async function cleanOutput(spec, root) {
   validate(spec);

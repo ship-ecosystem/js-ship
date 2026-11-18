@@ -13,9 +13,10 @@ import { releaseModel } from '../dist/release.js';
 async function fixture(t, manager = 'npm') {
   const root = await mkdtemp(join(tmpdir(), 'ship-workspaces-'));
   t.after(() => rm(root, { recursive: true, force: true }));
-  await writeFile(join(root, 'package.json'), JSON.stringify({ private: true, packageManager: manager === 'npm' ? 'npm@12.2.2' : 'pnpm@12.21.0',
-    ...(manager === 'npm' ? { workspaces: ['apps/*', 'packages/**', '!packages/excluded/**'] } : {}) }));
-  await writeFile(join(root, manager === 'npm' ? 'package-lock.json' : 'pnpm-lock.yaml'), '{}');
+  await writeFile(join(root, 'package.json'), JSON.stringify({ private: true, packageManager: ({ npm: 'npm@12.2.2', pnpm: 'pnpm@12.21.0', yarn: 'yarn@4.18.1' })[manager],
+    ...(manager !== 'pnpm' ? { workspaces: ['apps/*', 'packages/**', '!packages/excluded/**'] } : {}) }));
+  await writeFile(join(root, ({ npm: 'package-lock.json', pnpm: 'pnpm-lock.yaml', yarn: 'yarn.lock' })[manager]), '{}');
+  if (manager === 'yarn') await writeFile(join(root, '.yarnrc.yml'), 'nodeLinker: node-modules\n');
   if (manager === 'pnpm') await writeFile(join(root, 'pnpm-workspace.yaml'), "packages:\n  - 'apps/*'\n  - 'packages/**'\n  - '!packages/excluded/**'\nverifyDepsBeforeRun: false\n");
   for (const path of ['apps/api', 'apps/other', 'packages/shared', 'packages/excluded/hidden']) {
     await mkdir(join(root, path), { recursive: true });
@@ -25,7 +26,7 @@ async function fixture(t, manager = 'npm') {
   await writeFile(join(root, 'ship.json'), JSON.stringify({ workspace: { app: 'apps/api', buildDependencies: ['packages/shared'] } }));
   return root;
 }
-for (const manager of ['npm', 'pnpm']) {
+for (const manager of ['npm', 'pnpm', 'yarn']) {
   test(`${manager}: root lockfile and selected app drive detection, ordered builds and isolated dependency volumes`, async t => {
     const root = await fixture(t, manager);
     const cfg = await initProject(root);
@@ -48,7 +49,7 @@ for (const manager of ['npm', 'pnpm']) {
     assert.match(dockerfile, /FROM base AS dependencies\nCOPY \. \./);
     assert.match(dockerfile, /WORKDIR \/app\/apps\/api/);
     assert.match(dockerfile, /cd '\/app\/packages\/shared'/);
-    assert.match(dockerfile, /RUN cd \/app && '(npm|pnpm)' 'prune'/);
+    assert.match(dockerfile, manager === 'yarn' ? /RUN cd \/app && 'yarn' 'workspaces' 'focus' '--all' '--production'/ : /RUN cd \/app && '(npm|pnpm)' 'prune'/);
     assert.match(await readFile(join(root, 'ship/dev-entrypoint.sh'), 'utf8'), /cd '\/app\/apps\/api'/);
     assert.match(await readFile(join(root, '.dockerignore'), 'utf8'), /\*\*\/node_modules/);
     assert.deepEqual(await templateProblems(cfg, root), []);

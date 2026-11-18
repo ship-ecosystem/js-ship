@@ -473,3 +473,35 @@ The repository remains private and npm remains unpublished after this milestone.
   them. Dependabot update checks remain enabled. Further verification stays local.
 
 The repository remains private and npm remains unpublished.
+
+## Yarn 4 milestone
+
+- All 166 local unit/boundary tests passed under the isolated Node 22.23.5
+  runtime, with no skips. Yarn planning covers all fourteen framework adapters,
+  their supported Node/static modes, workspace selection, interactive/flag parity,
+  pin/lockfile conflicts and preservation of dependency metadata during cleanup.
+  The editor schema also rejects unsupported Yarn majors and `build.npmrc` for Yarn.
+- The installed 120-file npm tarball passed CLI, API, schema and consumer
+  TypeScript checks, including Yarn initialization and configuration validation
+  through the installed CLI. That consumer's lockfile is a planning fixture;
+  dependency installation is exercised by the Docker cases below.
+- Three focused local Docker cases passed with Yarn 4.18.1 on Node 24 Linux:
+  package-manager proxy updates, source reload, branch-change dependency removal
+  and stale-lockfile failure without rewriting the host lockfile; a generic Node
+  workspace with ordered shared TypeScript builds, retained runtime dependencies,
+  removed compiler dependencies, non-root execution and a copied source-free
+  release; and a React/Vite workspace with development modules, compiled shared
+  code, subpath assets and Node-free Nginx production output. Fixture teardown
+  passed; lockfile generation keeps temporary install state inside its disposable
+  container rather than leaving root-owned state in the host checkout.
+- Added [Yarn setup](yarn.md). The supported strategy uses Yarn 4 with explicit
+  `nodeLinker: node-modules`, immutable installs and root production focus.
+  Classic Yarn, Yarn 2/3, Plug'n'Play and Yarn private-registry authentication
+  remain unsupported. Other Yarn versions, framework/package combinations,
+  plugins, native dependencies and Docker operating-system variants need further
+  live coverage; the planning matrix is not a live build matrix.
+- The prepared full Docker matrix contains 17 suites and 40 cases. Only the
+  three focused Yarn cases ran locally in this milestone; the full Docker/browser
+  suites and GitHub CI remain deferred under the Actions budget restriction.
+  All four package workflows remain disabled. No npm publication or repository
+  visibility change was made.

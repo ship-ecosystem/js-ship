@@ -17,7 +17,8 @@ async function fixture(t, manifest, manager = 'npm') {
   t.after(() => rm(root, { recursive: true, force: true }));
   await writeFile(join(root, 'package.json'), JSON.stringify(manifest));
   // These boundary fixtures validate planning, not dependency installation.
-  await writeFile(join(root, manager === 'npm' ? 'package-lock.json' : 'pnpm-lock.yaml'), manager === 'npm' ? '{"lockfileVersion":3,"packages":{}}' : "lockfileVersion: '9.0'\n");
+  await writeFile(join(root, ({ npm: 'package-lock.json', pnpm: 'pnpm-lock.yaml', yarn: 'yarn.lock' })[manager]), manager === 'npm' ? '{"lockfileVersion":3,"packages":{}}' : manager === 'pnpm' ? "lockfileVersion: '9.0'\n" : '__metadata:\n  version: 8\n');
+  if (manager === 'yarn') await writeFile(join(root, '.yarnrc.yml'), 'nodeLinker: node-modules\n');
   return root;
 }
 
@@ -30,12 +31,12 @@ test('specific framework detection takes precedence over transitive/base framewo
   assert.equal(detectFramework({}), 'generic');
 });
 
-for (const manager of ['npm', 'pnpm']) {
+for (const manager of ['npm', 'pnpm', 'yarn']) {
   for (const framework of ['react', 'vue', 'svelte', 'vitepress']) {
     test(`${framework}/${manager}: init chooses static packaging, frozen installs and HMR arguments`, async t => {
       const docs = framework === 'vitepress';
       const manifest = { dependencies: { [framework]: '1.0.0' }, devDependencies: { vite: '7.0.0' },
-        ...(manager === 'pnpm' ? { packageManager: 'pnpm@12.21.0' } : {}),
+        ...(manager === 'pnpm' ? { packageManager: 'pnpm@12.21.0' } : manager === 'yarn' ? { packageManager: 'yarn@4.18.1' } : {}),
         scripts: docs ? { 'docs:dev': 'vitepress dev docs', 'docs:build': 'vitepress build docs' } : { dev: 'vite', build: 'tsc -b && vite build' } };
       const root = await fixture(t, manifest, manager);
       const cfg = await initProject(root);
@@ -54,7 +55,7 @@ for (const manager of ['npm', 'pnpm']) {
       assert.match(dockerfile, /nginx-unprivileged/);
       assert.match(dockerfile, /USER 101:101/);
       assert.match(dockerfile, /npm install --global --engine-strict/);
-      assert.match(dockerfile, new RegExp(`COPY package.json ${manager === 'npm' ? 'package-lock.json' : 'pnpm-lock.yaml'}`));
+      assert.match(dockerfile, manager === 'yarn' ? /COPY \. \./ : new RegExp(`COPY package.json ${({ npm: 'package-lock.json', pnpm: 'pnpm-lock.yaml', yarn: 'yarn.lock' })[manager]}`));
       const runtimeStage = dockerfile.split(' AS production\n')[1].split('FROM base AS development')[0];
       assert.ok(!runtimeStage.includes('node_modules'));
       assert.ok(!runtimeStage.includes('COPY --from=builder --chown=node:node /app /app'));
@@ -70,16 +71,16 @@ for (const manager of ['npm', 'pnpm']) {
   }
   for (const [framework, dependency] of [['expressjs', 'express'], ['fastify', 'fastify'], ['nestjs', '@nestjs/core']]) {
     test(`${framework}/${manager}: Node packaging uses the correct production script and prunes build dependencies`, async t => {
-      const manifest = { dependencies: { [dependency]: '1.0.0' }, ...(manager === 'pnpm' ? { packageManager: 'pnpm@12.21.0' } : {}),
+      const manifest = { dependencies: { [dependency]: '1.0.0' }, ...(manager === 'pnpm' ? { packageManager: 'pnpm@12.21.0' } : manager === 'yarn' ? { packageManager: 'yarn@4.18.1' } : {}),
         scripts: { dev: 'node --watch app.mjs', start: 'node app.mjs', build: 'tsc', 'start:dev': 'nest start --watch', 'start:prod': 'node dist/main.js' } };
       const root = await fixture(t, manifest, manager);
       const cfg = await initProject(root);
       assert.equal(cfg.framework, framework);
       const prod = buildCompose(cfg, root, 'production');
       assert.deepEqual(prod.services.app.command, [manager, 'run', framework === 'nestjs' ? 'start:prod' : 'start']);
-      assert.equal(prod.services.app.build.args.SHIP_PACKAGE_MANAGER_VERSION, manager === 'npm' ? DEFAULT_NPM_VERSION : '12.21.0');
+      assert.equal(prod.services.app.build.args.SHIP_PACKAGE_MANAGER_VERSION, manager === 'npm' ? DEFAULT_NPM_VERSION : manager === 'pnpm' ? '12.21.0' : '4.18.1');
       const dockerfile = await readFile(join(root, 'ship/Dockerfile'), 'utf8');
-      assert.match(dockerfile, manager === 'npm' ? /'npm' 'prune' '--omit=dev'/ : /'pnpm' 'prune' '--prod'/);
+      assert.match(dockerfile, manager === 'npm' ? /'npm' 'prune' '--omit=dev'/ : manager === 'pnpm' ? /'pnpm' 'prune' '--prod'/ : /'yarn' 'workspaces' 'focus' '--all' '--production'/);
       assert.match(dockerfile, /USER node/);
       assert.ok(!dockerfile.includes('nginx'));
       assert.deepEqual(await projectProblems(cfg, root), []);
@@ -142,7 +143,7 @@ test('Next.js detection selects its output adapter; explicit generic selection r
 
 test('package manager declarations must match config and lockfiles', async t => {
   assert.deepEqual(manifestManager({ packageManager: 'pnpm@12.21.0+sha512.abcd' }), { name: 'pnpm', version: '12.21.0' });
-  for (const value of ['npm@12.2.2\n', 'pnpm@latest', 'npm@^12', 'npm@01.2.3', 'bun@1.0.0', 'yarn@4.0.0', 12]) assert.throws(() => manifestManager({ packageManager: value }));
+  for (const value of ['npm@12.2.2\n', 'pnpm@latest', 'npm@^12', 'npm@01.2.3', 'bun@1.0.0', 'yarn@1.22.22', 'yarn@3.8.7', 12]) assert.throws(() => manifestManager({ packageManager: value }));
   const root = await fixture(t, { packageManager: 'pnpm@12.21.0', scripts: { dev: 'node app.mjs', start: 'node app.mjs' } }, 'pnpm');
   await assert.rejects(initProject(root, { packageManagerVersion: '10.0.0' }), /conflicts/);
   assert.ok(!(await readdir(root)).includes('ship'));

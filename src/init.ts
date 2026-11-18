@@ -64,8 +64,8 @@ export async function planInitProject(root: string, options: InitOptions = {}, r
   const managerVersion = options.packageManagerVersion ?? existing.packageManagerVersion ??
     (declared && declared.name === managerName ? declared.version : managerName === "npm" ? DEFAULT_NPM_VERSION : undefined);
   const detected = managerName === undefined ? await detectPackageManager(root, rootManifest) : null;
-  if (managerName !== undefined && managerName !== "npm" && managerName !== "pnpm") throw new ConfigError(["--package-manager must be npm or pnpm."]);
-  if (managerName === "pnpm" && (typeof managerVersion !== "string" || !EXACT_VERSION.test(managerVersion))) throw new ConfigError(["Pin pnpm with package.json packageManager or --package-manager-version VERSION."]);
+  if (managerName !== undefined && managerName !== "npm" && managerName !== "pnpm" && managerName !== "yarn") throw new ConfigError(["--package-manager must be npm, pnpm or yarn."]);
+  if ((managerName === "pnpm" || managerName === "yarn") && (typeof managerVersion !== "string" || !EXACT_VERSION.test(managerVersion))) throw new ConfigError([`Pin ${managerName} with package.json packageManager or --package-manager-version VERSION.`]);
   const services = { ...((existing.services ?? {}) as Record<string, string>) };
   for (const key of ["database", "cache"] as const) {
     const value = options[key];
@@ -102,7 +102,7 @@ export async function initProject(root: string, options: InitOptions = {}, regis
     }
   }
   await writeFile(resolve(root, "ship.json"), JSON.stringify({ $schema: existing.$schema ?? "./ship/ship.schema.json", ...config }, null, 2) + "\n");
-  await appendRules(resolve(root, ".dockerignore"), [".ship-secrets", "**/.npmrc", "**/.env", "**/.env.*", "**/node_modules", "node_modules", "dist/ship", ".git", ".env", ".env.*", "!.env.example", "*.tgz", ".npmrc", "ship/.gatsby-static.json"]);
+  await appendRules(resolve(root, ".dockerignore"), [".ship-secrets", "**/.npmrc", "**/.env", "**/.env.*", "**/node_modules", "**/.yarn/cache", "**/.yarn/unplugged", "**/.yarn/install-state.gz", "**/.yarn/build-state.yml", "**/.pnp.*", "node_modules", "dist/ship", ".git", ".env", ".env.*", "!.env.example", "*.tgz", ".npmrc", "ship/.gatsby-static.json"]);
   const ignorePath = resolve(root, ".dockerignore");
   const ignore = await readFile(ignorePath, "utf8");
   const active = ignore.split(/\r?\n/).map(line => line.trim()).filter(line => line && !line.startsWith("#"));

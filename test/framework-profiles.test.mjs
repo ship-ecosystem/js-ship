@@ -16,14 +16,15 @@ async function put(root, path, data = 'fixture') { await mkdir(dirname(join(root
 const deps = { next: 'next', nuxt: 'nuxt', sveltekit: '@sveltejs/kit', astro: 'astro', angular: '@angular/core', 'tanstack-start': '@tanstack/react-start', gatsby: 'gatsby' };
 async function project(t, framework, mode, manager = 'npm', extra = {}) {
   const root = await temp(t);
-  const manifest = { packageManager: `${manager}@${manager === 'npm' ? '12.2.2' : '12.21.0'}`, dependencies: { [deps[framework]]: '1.0.0',
+  const manifest = { packageManager: `${manager}@${({ npm: '12.2.2', pnpm: '12.21.0', yarn: '4.18.1' })[manager]}`, dependencies: { [deps[framework]]: '1.0.0',
     ...(['sveltekit','tanstack-start'].includes(framework)?{vite:'7.0.0'}:{}),
     ...(framework === 'sveltekit' ? { [`@sveltejs/adapter-${mode === 'node' ? 'node' : 'static'}`]: '1.0.0' } : {}),
     ...(framework === 'astro' && mode === 'node' ? { '@astrojs/node': '1.0.0' } : {}), ...(framework === 'tanstack-start' ? { nitro: '1.0.0' } : {}) },
     scripts: { dev: framework === 'angular' ? 'ng serve' : framework === 'gatsby' ? 'gatsby develop' : ['sveltekit','tanstack-start'].includes(framework)?'vite':`${framework} dev`,
       build: framework === 'angular' ? 'ng build' : framework === 'gatsby' ? 'gatsby build' : ['sveltekit','tanstack-start'].includes(framework)?'vite build':`${framework} build`, generate: 'nuxt generate' } };
   await put(root, 'package.json', JSON.stringify(manifest));
-  await put(root, manager === 'npm' ? 'package-lock.json' : 'pnpm-lock.yaml', manager === 'npm' ? '{}' : "lockfileVersion: '9.0'\n");
+  await put(root, ({ npm: 'package-lock.json', pnpm: 'pnpm-lock.yaml', yarn: 'yarn.lock' })[manager], manager === 'npm' ? '{}' : "lockfileVersion: '9.0'\n");
+  if (manager === 'yarn') await put(root, '.yarnrc.yml', 'nodeLinker: node-modules\n');
   if (framework === 'angular') await put(root, 'angular.json', JSON.stringify({ projects: { frontend: { projectType: 'application', architect: { build: {
     builder: '@angular/build:application', options: { outputPath: 'dist/frontend', ...(mode === 'node' ? { ssr: { entry: 'src/server.ts' } } : {}) }, configurations: { production: {} } } } } } }));
   if (Object.keys(extra).length) await put(root, 'ship.json', JSON.stringify(extra));
@@ -36,7 +37,7 @@ test('all fourteen requested frameworks are built-ins alongside generic', () => 
   for (const key of ['react','vue','angular','svelte','nestjs','fastify','expressjs','next','nuxt','sveltekit','astro','vitepress','tanstack-start','gatsby']) assert.ok(builtinAdapters.has(key));
 });
 
-for (const manager of ['npm', 'pnpm']) for (const framework of Object.keys(deps)) for (const mode of framework === 'gatsby' ? ['static'] : framework === 'tanstack-start' ? ['node'] : ['node','static']) {
+for (const manager of ['npm', 'pnpm', 'yarn']) for (const framework of Object.keys(deps)) for (const mode of framework === 'gatsby' ? ['static'] : framework === 'tanstack-start' ? ['node'] : ['node','static']) {
   test(`${framework}/${mode}/${manager}: init, output packaging and development commands`, async t => {
     const { root, cfg } = await project(t, framework, mode, manager);
     assert.equal(cfg.framework, framework);
@@ -52,7 +53,7 @@ for (const manager of ['npm', 'pnpm']) for (const framework of Object.keys(deps)
     if (mode === 'node') {
       assert.ok(dockerfile.includes('COPY --from=builder --chown=node:node /opt/ship-runtime /app'));
       assert.equal(model.services.app.command[1], plan.entrypoint);
-      assert.ok(dockerfile.indexOf("'prune'") < dockerfile.lastIndexOf('RUN node ship/prepare-output.mjs'));
+      assert.ok(dockerfile.indexOf(manager === 'yarn' ? "'focus'" : "'prune'") < dockerfile.lastIndexOf('RUN node ship/prepare-output.mjs'));
     } else {
       assert.ok(dockerfile.includes('nginx-unprivileged'));
       assert.equal(model.services.app.environment, undefined);
@@ -201,6 +202,11 @@ test('output cleanup rejects dependency metadata directories instead of deleting
   const root=await temp(t);await put(root,'node_modules/keep.js');
   await assert.rejects(cleanOutput({kind:'static',framework:'astro',directory:'node_modules'},root),/collides/);
   assert.ok((await stat(join(root,'node_modules/keep.js'))).isFile());
+  for (const path of ['yarn.lock', '.yarnrc.yml', '.yarn/patches/keep.patch']) {
+    await put(root, path, 'preserve');
+    await assert.rejects(cleanOutput({kind:'static',framework:'astro',directory:path},root),/collides/);
+    assert.equal(await readFile(join(root,path), 'utf8'), 'preserve');
+  }
 });
 
 test('Gatsby build proof is produced only for static routes and is mandatory for packaging', async t => {

@@ -22,7 +22,7 @@ const HELP = `JavaScript Ship ${VERSION} — development milestone
 Usage: ship [--project-directory PATH] COMMAND [arguments]
 
   init [--database postgres|mongodb|none] [--cache redis|none] [--force]
-       [--framework NAME] [--package-manager npm|pnpm]
+       [--framework NAME] [--package-manager npm|pnpm|yarn]
        [--package-manager-version VERSION] [--no-interaction]
        [--deployment node|static] [--angular-project NAME]
        [--mongodb-mode standalone|replica-set] [--workspace PATH]
@@ -34,6 +34,7 @@ Usage: ship [--project-directory PATH] COMMAND [arguments]
   db [INSTANCE]              Open the selected database client
   npm ARGUMENTS...           Run npm inside app (arguments passed unchanged)
   pnpm ARGUMENTS...           Run pnpm inside a pnpm app
+  yarn ARGUMENTS...           Run Yarn inside a Yarn app
   config:test                Check project and both Compose models, no Docker
   doctor [--json]            Diagnose project/Docker/service issues with recovery hints
   build [--no-cache]         Build project-owned production images
@@ -41,7 +42,7 @@ Usage: ship [--project-directory PATH] COMMAND [arguments]
 
 Adapters: generic, react, vue, angular, svelte, nestjs, fastify, expressjs,
           next, nuxt, sveltekit, astro, vitepress, tanstack-start, gatsby.
-Package managers: pinned npm and pnpm. Services: PostgreSQL, Redis, MongoDB.
+Package managers: pinned npm, pnpm and Yarn 4 (node_modules). Services: PostgreSQL, Redis, MongoDB.
 Init prompts in terminals; --no-interaction skips all questions.
 Deployment modes and verification status are documented in docs/frameworks.md.
 `;
@@ -62,7 +63,7 @@ async function main(argv: string[]): Promise<void> {
   const command = argv[0] ?? "--help", args = argv.slice(1);
   if (["--help", "-h", "help"].includes(command)) { console.log(HELP); return; }
   if (["--version", "-V"].includes(command)) { console.log(VERSION); return; }
-  const known = new Set(["init", "up", "down", "exec", "shell", "logs", "db", "npm", "pnpm", "config:test", "doctor", "build", "release"]);
+  const known = new Set(["init", "up", "down", "exec", "shell", "logs", "db", "npm", "pnpm", "yarn", "config:test", "doctor", "build", "release"]);
   if (!known.has(command)) throw new ConfigError([`Unknown command ${command}. Run ship --help.`]);
   if (command === "init") {
     const opts = options(args, { database: { type: "string" }, cache: { type: "string" }, framework: { type: "string" },
@@ -126,7 +127,7 @@ async function main(argv: string[]): Promise<void> {
   const exec = [...prefix, "exec", ...(!process.stdin.isTTY || !process.stdout.isTTY ? ["-T"] : [])];
   const applicationCommand = (target: string, argv: readonly string[]) => [...exec, target,
     ...(target === app ? ["node", "/usr/local/bin/ship-app-entrypoint.mjs"] : []), ...argv];
-  if (command === "npm" || command === "pnpm") {
+  if (command === "npm" || command === "pnpm" || command === "yarn") {
     if (command !== config.packageManager) throw new ConfigError([`This project selects ${config.packageManager}; use ship ${config.packageManager} to keep its lockfile authoritative.`]);
     await run(applicationCommand(app, [...(config.build.npmrc ? ["env", "NPM_CONFIG_USERCONFIG=/run/secrets/ship_npmrc"] : []), command, ...args]), root); return;
   }

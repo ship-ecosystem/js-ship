@@ -11,7 +11,7 @@ export interface ComposeModel {
 }
 
 export interface AdditionalService { group: string; service: string; name: string }
-export type PackageManagerName = "npm" | "pnpm";
+export type PackageManagerName = "npm" | "pnpm" | "yarn";
 export interface PackagingPlan {
   kind: "node" | "static";
   port: number;

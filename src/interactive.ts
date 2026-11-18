@@ -59,7 +59,7 @@ export async function interactiveInitOptions(root: string, supplied: InitOptions
     options.angularProject = await choose("angularProject", "Angular application (--angular-project)", text(raw.angularProject, projects[0]!), projects);
   }
   if (options.packageManager === undefined) options.packageManager = await choose("packageManager", "Package manager (--package-manager)",
-    text(raw.packageManager) || declared?.name || (await exists(resolve(root, "pnpm-lock.yaml")) ? "pnpm" : "npm"), ["npm", "pnpm"]);
+    text(raw.packageManager) || declared?.name || (await exists(resolve(root, "pnpm-lock.yaml")) ? "pnpm" : await exists(resolve(root, "yarn.lock")) ? "yarn" : "npm"), ["npm", "pnpm", "yarn"]);
   if (options.packageManagerVersion === undefined) options.packageManagerVersion = await choose("packageManagerVersion", "Exact package-manager version (--package-manager-version)",
     (raw.packageManager === options.packageManager ? text(raw.packageManagerVersion) : "") ||
     (declared?.name === options.packageManager ? declared.version : options.packageManager === "npm" ? DEFAULT_NPM_VERSION : ""), undefined,

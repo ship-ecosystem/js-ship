@@ -49,6 +49,9 @@ application credentials when needed.
 
 ## Private npm and pnpm dependencies
 
+The registry-secret workflow below supports npm/pnpm; Yarn registry
+authentication is not implemented (see [Yarn scope](yarn.md)).
+
 With `npmrc: true`, put a complete npm configuration in `.ship-secrets/npmrc`:
 
 ```ini

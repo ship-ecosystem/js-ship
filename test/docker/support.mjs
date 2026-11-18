@@ -5,13 +5,15 @@ import { setTimeout as delay } from 'node:timers/promises';
 
 export async function lockFixture(root, manager = 'npm', npmVersion = '12.2.2') {
   if (!/^\d+\.\d+\.\d+$/.test(npmVersion)) throw new Error('Fixture npm version must be an exact release.');
-  const setup = manager === 'pnpm'
+  const setup = manager === 'yarn'
+    ? 'if command -v corepack >/dev/null 2>&1; then corepack disable; fi; rm -f /usr/local/bin/yarn /usr/local/bin/yarnpkg; npm install --global @yarnpkg/cli-dist@4.18.1 --no-audit --no-fund && YARN_IGNORE_PATH=true YARN_ENABLE_GLOBAL_CACHE=true YARN_INSTALL_STATE_PATH=/tmp/ship-yarn-install-state.gz yarn install --mode=update-lockfile'
+    : manager === 'pnpm'
     ? 'if command -v corepack >/dev/null 2>&1; then corepack disable; fi; npm install --global pnpm@12.21.0 --no-audit --no-fund && pnpm install --lockfile-only --store-dir /tmp/ship-pnpm-store --modules-dir /tmp/ship-pnpm-modules --virtual-store-dir /tmp/ship-pnpm-virtual'
     : `npm install --global npm@${npmVersion} --no-audit --no-fund && npm install --package-lock-only --ignore-scripts --no-audit --no-fund`;
   await run(['docker', 'run', '--rm', '--mount', `type=bind,source=${root},target=/app`, '--workdir', '/app', 'node:24-bookworm-slim', 'sh', '-c', setup], root);
   // Root inside the temporary container may have atomically replaced these files.
   // Recreate them as the host test user before exercising non-root dependency proxies.
-  for (const file of ['package.json', manager === 'npm' ? 'package-lock.json' : 'pnpm-lock.yaml']) {
+  for (const file of ['package.json', ({ npm: 'package-lock.json', pnpm: 'pnpm-lock.yaml', yarn: 'yarn.lock' })[manager]]) {
     const path = join(root, file), bytes = await readFile(path);
     await rm(path); await writeFile(path, bytes);
   }

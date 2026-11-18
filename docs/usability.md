@@ -13,7 +13,7 @@ framework detection and shows defaults from existing configuration and manifests
 | Framework | `--framework react` |
 | Deployment | `--deployment static` |
 | Angular application | `--angular-project frontend` |
-| Package manager | `--package-manager npm` |
+| Package manager | `--package-manager npm`, `pnpm` or `yarn` |
 | Exact manager version | `--package-manager-version 12.2.2` |
 | Primary database | `--database postgres`, `mongodb` or `none` |
 | Primary cache | `--cache redis` or `none` |

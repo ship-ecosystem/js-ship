@@ -11,7 +11,7 @@ until release checks are complete. Once published, install it with
 [the changelog](CHANGELOG.md).
 
 Implemented now: all fourteen requested framework adapters, generic Node apps,
-pinned npm/pnpm workflows, PostgreSQL, Redis, MongoDB, named instances, production
+pinned npm/pnpm/Yarn 4 workflows, PostgreSQL, Redis, MongoDB, named instances, production
 workers and portable release assembly. All adapters have planning/template and
 output-file tests; representative framework builds and infrastructure also
 have live Docker coverage. Tested versions and remaining gaps are recorded in
@@ -32,12 +32,13 @@ are explained in [environment boundaries](docs/environment.md).
 
 Requires patched Node 22.23.5+, 24.22.3+ or 26.13.1+ within those majors, npm,
 Docker Engine/Desktop and Compose 2.24.0+. The application must
-have one committed npm or pnpm lockfile. Init detects the framework and package
+have one committed npm, pnpm or Yarn lockfile. Init detects the framework and package
 manager from package.json and lockfiles without running application scripts on the
 host. Explicitly configured [extensions](docs/extensions.md) do execute host code.
-npm/pnpm workspaces can select an app with `ship init --workspace apps/api` from
+npm/pnpm/Yarn workspaces can select an app with `ship init --workspace apps/api` from
 the repository root. See [workspaces](docs/workspaces.md) for build order and
-packaging limits. Yarn and Bun are not implemented yet.
+packaging limits. See [Yarn 4 setup](docs/yarn.md) for its required node_modules
+linker and current scope. Bun is not implemented yet.
 
 ```sh
 npm ci
@@ -50,7 +51,7 @@ node dist/cli.js --project-directory /absolute/path/to/app up
 `examples/node` is a dependency-free app you can copy to a temporary directory
 to try this workflow. It listens on `HOST` and `PORT` and uses Node watch mode.
 Generic apps must bind `0.0.0.0`; Ship supplies `HOST=0.0.0.0` and `PORT=3000`.
-Current init uses deterministic defaults and flags, with no interactive picker.
+Init offers a terminal picker; use `--no-interaction` for deterministic automation.
 
 ## Configuration in your editor
 
@@ -273,7 +274,7 @@ npm pack --dry-run
 The unit suite covers config errors, rename/data stability, literal command
 arguments, secrets, template preservation, development overrides, release
 staging/deduplication/checksums, and HTTP readiness. Release-boundary tests use a
-recording runner, not Docker. The Docker suite exercises development, npm/pnpm
+recording runner, not Docker. The Docker suite exercises development, npm/pnpm/Yarn
 dependency refresh, Vite component builds, Node server and SSR/static builds,
 MongoDB transactions/change streams, database persistence, worker crash/manual
 restarts, graceful process-tree shutdown and source-free releases. Browser checks
@@ -283,7 +284,9 @@ They capture traces/screenshots under `test-results/`
 on failure. `SHIP_BROWSER_EXECUTABLE` can select an existing Chromium installation;
 Linux CI installs its browser dependencies with Playwright. This is a development
 dependency only; installed Ship has no runtime dependencies.
-GitHub quality, Docker and browser workflows are included. A separate release-transfer
+GitHub workflows are currently disabled to conserve Actions minutes; they will run
+only after explicit pre-release authorization. Quality, Docker and browser
+workflows are prepared. A separate release-transfer
 workflow exports a fixture on one runner and boots its artifact on another, with no
 application source checkout, npm install, image build or registry pull on the consumer.
 Only its generated test `.env` is transferred; the workflow does not upload an actual

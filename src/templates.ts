@@ -13,7 +13,7 @@ const quote = (arg: string): string => `'${arg.replaceAll("'", "'\\''")}'`;
 const shell = (args: readonly string[]): string => args.map(quote).join(" ");
 export function templateSettings(config: ShipConfig, workspacePackages: readonly string[] = [], registry?: ExtensionRegistry): Record<string, unknown> {
   const plan = adapterFor(config, registry).packaging(config);
-  return { format: 8, packaging: JSON.stringify(plan), buildArguments: JSON.stringify(adapterFor(config, registry).buildArguments?.(config) ?? null), extensions: registry && (registry.extensions.length || config.extensions.length) ? registry.fingerprint : null, images: JSON.stringify(IMAGES), workspace: JSON.stringify(config.workspace), workspacePackages: JSON.stringify(workspacePackages), build: JSON.stringify({ publicEnv: Object.keys(config.build.publicEnv).sort(), secrets: config.build.secrets, npmrc: config.build.npmrc }), packageManager: config.packageManager, framework: config.framework, deployment: config.deployment,
+  return { format: 8, packaging: JSON.stringify(plan), buildArguments: JSON.stringify(adapterFor(config, registry).buildArguments?.(config) ?? null), extensions: registry && (registry.extensions.length || config.extensions.length) ? registry.fingerprint : null, images: JSON.stringify(IMAGES), workspace: JSON.stringify(config.workspace), workspacePackages: JSON.stringify(workspacePackages), build: JSON.stringify({ publicEnv: Object.keys(config.build.publicEnv).sort(), secrets: config.build.secrets, npmrc: config.build.npmrc }), packageManager: config.packageManager, ...(config.packageManager === "yarn" ? { yarnNodeModules: 1 } : {}), framework: config.framework, deployment: config.deployment,
     kind: plan.kind, outputDirectory: plan.outputDirectory, routing: plan.routing, basePath: config.basePath,
     entrypoint: plan.entrypoint ?? null, runtimeFiles: JSON.stringify(config.runtimeFiles), angularProject: config.angularProject,
     ...(config.framework === "gatsby" ? { gatsbyStaticHeaders: 1 } : {}),
@@ -36,7 +36,8 @@ export async function renderTemplates(config: ShipConfig, workspacePackages: rea
   const helper = config.workspace ? "/app/ship/prepare-output.mjs" : "ship/prepare-output.mjs";
   const dependencyBuilds = (config.workspace?.buildDependencies ?? []).map(path => `(cd ${quote(`/app/${path}`)} && ${config.packageManager} run build)`);
   const manager = packageManagers[config.packageManager];
-  const setup = `ARG SHIP_PACKAGE_MANAGER_VERSION\nRUN if command -v corepack >/dev/null 2>&1; then corepack disable; fi\nRUN test -n "$SHIP_PACKAGE_MANAGER_VERSION" && npm install --global --engine-strict "${config.packageManager}@$SHIP_PACKAGE_MANAGER_VERSION" --no-audit --no-fund\nENV CI=true${config.packageManager === "pnpm" ? "\nENV PNPM_CONFIG_VERIFY_DEPS_BEFORE_RUN=false" : ""}`;
+  const distribution = config.packageManager === "yarn" ? "@yarnpkg/cli-dist" : config.packageManager;
+  const setup = `ARG SHIP_PACKAGE_MANAGER_VERSION\nRUN if command -v corepack >/dev/null 2>&1; then corepack disable; fi${config.packageManager === "yarn" ? "\nRUN rm -f /usr/local/bin/yarn /usr/local/bin/yarnpkg" : ""}\nRUN test -n "$SHIP_PACKAGE_MANAGER_VERSION" && npm install --global --engine-strict "${distribution}@$SHIP_PACKAGE_MANAGER_VERSION" --no-audit --no-fund\nENV CI=true${config.packageManager === "pnpm" ? "\nENV PNPM_CONFIG_VERIFY_DEPS_BEFORE_RUN=false" : config.packageManager === "yarn" ? "\nENV YARN_NODE_LINKER=node-modules YARN_IGNORE_PATH=true YARN_ENABLE_GLOBAL_CACHE=true YARN_INSTALL_STATE_PATH=/app/node_modules/.yarn-install-state.gz" : ""}`;
   const production = plan.kind === "node"
     ? `FROM base AS production\nENV NODE_ENV=production\nCOPY --from=builder --chown=node:node ${plan.runtime && plan.runtime !== "project" ? "/opt/ship-runtime" : "/app"} /app\nCOPY ship/app-entrypoint.mjs /usr/local/bin/ship-app-entrypoint.mjs\n${config.workspace ? `WORKDIR ${appPath}\n` : ""}USER node\nENTRYPOINT ["node", "/usr/local/bin/ship-app-entrypoint.mjs"]`
     : `FROM ${IMAGES.nginx} AS production\nCOPY ship/nginx.conf /etc/nginx/conf.d/default.conf\nCOPY --from=builder ${appPath}/${plan.outputDirectory}/ /usr/share/nginx/html${config.basePath}\nUSER 101:101\nEXPOSE 8080`;
@@ -48,7 +49,7 @@ export async function renderTemplates(config: ShipConfig, workspacePackages: rea
   const secretMounts = config.build.secrets.map(key => `--mount=type=secret,id=ship_build_${key},env=${key},required=true `).join("");
   const replacements: Record<string, string> = {
     "@PACKAGE_MANAGER_SETUP@": setup, "@NODE_IMAGE@": IMAGES.node24,
-    "@DEPENDENCY_COPY@": config.workspace ? "COPY . ." : `COPY package.json ${manager.lockfile} ./`,
+    "@DEPENDENCY_COPY@": config.workspace || config.packageManager === "yarn" ? "COPY . ." : `COPY package.json ${manager.lockfile} ./`,
     "@DEVELOPMENT_DEPENDENCY_DIRS@": shell(["/app/node_modules", ...workspacePackages.map(path => `/app/${path}/node_modules`)]),
     "@INSTALL@": `${npmrcMount}${npmrcEnv}${shell(manager.install)}`,
     "@PUBLIC_BUILD_ARGS@": Object.keys(config.build.publicEnv).sort().map(key => `ARG ${key}`).join("\n"),

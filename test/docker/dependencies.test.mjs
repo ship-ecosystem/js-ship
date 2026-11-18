@@ -9,7 +9,7 @@ import { readConfig } from '../../dist/config.js';
 import { composePrefix } from '../../dist/project.js';
 import { lockFixture, publishedPort, waitForResponse } from './support.mjs';
 
-for (const manager of ['npm', 'pnpm']) test(`${manager}: proxy updates, source reload and dependency refresh after a branch change`, { timeout: 600_000 }, async t => {
+for (const manager of ['npm', 'pnpm', 'yarn']) test(`${manager}: proxy updates, source reload and dependency refresh after a branch change`, { timeout: 600_000 }, async t => {
   const root = await mkdtemp(join(tmpdir(), 'ship-dependency-test-'));
   const name = `ship-dependency-${randomBytes(5).toString('hex')}`;
   const cli = resolve('dist/cli.js');
@@ -22,10 +22,11 @@ for (const manager of ['npm', 'pnpm']) test(`${manager}: proxy updates, source r
   });
   await cp(resolve('examples/node'), root, { recursive: true });
   const manifest = JSON.parse(await readFile(join(root, 'package.json'), 'utf8'));
-  manifest.packageManager = `${manager}@${manager === 'npm' ? '12.2.2' : '12.21.0'}`;
+  manifest.packageManager = `${manager}@${({ npm: '12.2.2', pnpm: '12.21.0', yarn: '4.18.1' })[manager]}`;
   await writeFile(join(root, 'package.json'), JSON.stringify(manifest));
-  if (manager === 'pnpm') { await rm(join(root, 'package-lock.json')); await lockFixture(root, manager); }
-  const lock = manager === 'npm' ? 'package-lock.json' : 'pnpm-lock.yaml';
+  if (manager === 'yarn') await writeFile(join(root, '.yarnrc.yml'), 'nodeLinker: node-modules\n');
+  if (manager !== 'npm') { await rm(join(root, 'package-lock.json')); await lockFixture(root, manager); }
+  const lock = ({ npm: 'package-lock.json', pnpm: 'pnpm-lock.yaml', yarn: 'yarn.lock' })[manager];
   const originalManifest = await readFile(join(root, 'package.json'));
   const originalLock = await readFile(join(root, lock));
   const originalSource = await readFile(join(root, 'server.mjs'), 'utf8');
@@ -36,7 +37,7 @@ for (const manager of ['npm', 'pnpm']) test(`${manager}: proxy updates, source r
   let port = await publishedPort(prefix, root, 3000);
   await writeFile(join(root, 'server.mjs'), originalSource.replace('Hello from JavaScript Ship', 'Reloaded fixture'));
   await waitForResponse(`http://127.0.0.1:${port}`, async response => (await response.json()).message === 'Reloaded fixture');
-  await ship([manager, manager === 'npm' ? 'install' : 'add', '--save-exact', 'is-number@7.0.0']);
+  await ship([manager, manager === 'npm' ? 'install' : 'add', manager === 'yarn' ? '--exact' : '--save-exact', 'is-number@7.0.0']);
   assert.equal(JSON.parse(await readFile(join(root, 'package.json'), 'utf8')).dependencies['is-number'], '7.0.0');
   await ship(['exec', 'app', 'node', '-e', "import('is-number').then(m=>{if(!m.default(42))process.exit(1)})"]);
   // Simulate a checkout whose manifest, lockfile and source no longer contain the dependency.
@@ -47,4 +48,14 @@ for (const manager of ['npm', 'pnpm']) test(`${manager}: proxy updates, source r
   port = await publishedPort(prefix, root, 3000);
   await waitForResponse(`http://127.0.0.1:${port}`, async response => (await response.json()).message === 'Hello from JavaScript Ship');
   await ship(['exec', 'app', 'node', '-e', "import('node:fs').then(fs=>{if(fs.existsSync('/app/node_modules/is-number')){console.error('stale dependency after checkout');process.exit(1)}})"]);
+  if (manager === 'yarn') {
+    const stale = JSON.parse(originalManifest.toString());
+    stale.dependencies = { ...stale.dependencies, 'is-number': '7.0.0' };
+    await writeFile(join(root, 'package.json'), JSON.stringify(stale));
+    await assert.rejects(ship(['up']));
+    const logs = await run([...prefix, 'logs', '--no-color', '--tail', '80', 'app'], root, { capture: true });
+    assert.match(logs, /YN0028|lockfile would have been modified/);
+    assert.deepEqual(await readFile(join(root, lock)), originalLock, 'immutable failure must not rewrite the host lockfile');
+  }
+
 });

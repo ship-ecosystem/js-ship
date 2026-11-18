@@ -95,7 +95,7 @@ An adapter defines:
 - `validate(config, manifest)`: an array of project-validation error strings.
 - `packaging(config)`: a validated `PackagingPlan`.
 - `developmentCommand(config)` and `productionCommand(config)`: nonempty argument
-  arrays, not shell strings. Use the exported `scriptCommand` helper for npm/pnpm
+  arrays, not shell strings. Use the exported `scriptCommand` helper for npm/pnpm/Yarn
   script forwarding and argument separators.
 - Optional `buildArguments(config)`: extra build-script arguments. Custom adapters
   get no implicit Vite flags; return the arguments required by your build tool.

@@ -19,11 +19,11 @@ test('shipped schema is current, compiles strictly and covers every normalized c
   assert.deepEqual(Object.keys(shipConfigSchema.properties).filter(key => key !== '$schema').sort(), Object.keys(parseConfig({}, '/app')).sort());
   assert.deepEqual(shipConfigSchema.properties.framework.enum, [...builtinAdapters.keys()]);
   for (const framework of builtinAdapters.keys()) {
-    for (const packageManager of ['npm', 'pnpm']) {
-      const cfg = parseConfig({ framework, packageManager, packageManagerVersion: '12.21.0',
+    for (const packageManager of ['npm', 'pnpm', 'yarn']) {
+      const cfg = parseConfig({ framework, packageManager, packageManagerVersion: packageManager === 'yarn' ? '4.18.1' : '12.21.0',
         services: { database: 'mongodb', cache: 'redis' },
         additionalServices: [{ group: 'database', service: 'postgres', name: 'analytics' }],
-        build: { publicEnv: { PUBLIC_URL: 'https://example.com/$literal' }, secrets: ['CMS_TOKEN'], npmrc: true } }, '/app');
+        build: { publicEnv: { PUBLIC_URL: 'https://example.com/$literal' }, secrets: ['CMS_TOKEN'], npmrc: packageManager !== 'yarn' } }, '/app');
       assertValid(cfg);
     }
   }
@@ -37,6 +37,7 @@ test('schema and parser reject malformed authored configuration without coercion
     { workspace: { app: '../outside' } }, { workspace: { app: 'apps/api', buildDependencies: null } },
     { unexpected: true }, { $schema: 4 }, { $schema: '  ' }, { name: 'UpperCase' }, { name: 'valid\n' }, { node: 'latest' }, { node: '24\n' }, { packageManagerVersion: '12.2.2\n' },
     { deployment: 'serverless' }, { port: '3000' }, { port: 0 }, { port: 65536 }, { port: 3.5 },
+    { packageManager: 'yarn', packageManagerVersion: '1.22.22' }, { packageManager: 'yarn', packageManagerVersion: '4.18.1', build: { npmrc: true } },
     { packageManager: 'bun' }, { packageManagerVersion: '^12.2.2' }, { runtimeFiles: ['../outside'] },
     { outputDirectory: 'dist/../secret' }, { serverEntry: '/server.mjs' }, { basePath: '/docs' },
     { scripts: { build: 'npm run build' } }, { scripts: { unexpected: 'run' } }, { scripts: { dev: null } },

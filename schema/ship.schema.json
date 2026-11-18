@@ -55,7 +55,7 @@
         }
       ],
       "default": null,
-      "description": "Select an app inside a root npm/pnpm workspace; buildDependencies lists package paths built first, in order."
+      "description": "Select an app inside a root npm/pnpm/Yarn workspace; buildDependencies lists package paths built first, in order."
     },
     "name": {
       "type": "string",
@@ -106,7 +106,8 @@
       "type": "string",
       "enum": [
         "npm",
-        "pnpm"
+        "pnpm",
+        "yarn"
       ],
       "default": "npm"
     },
@@ -115,7 +116,8 @@
       "pattern": "^(?:0|[1-9]\\d*)\\.(?:0|[1-9]\\d*)\\.(?:0|[1-9]\\d*)(?![\\s\\S])",
       "examples": [
         "12.2.2",
-        "12.21.0"
+        "12.21.0",
+        "4.18.1"
       ],
       "description": "Exact stable version; must match package.json when declared there."
     },
@@ -369,6 +371,7 @@
             "release",
             "npm",
             "pnpm",
+            "yarn",
             "app"
           ]
         }
@@ -431,6 +434,43 @@
       "description": "Explicit public values and temporary build credentials; runtime .env files are excluded from builds."
     }
   },
+  "allOf": [
+    {
+      "if": {
+        "properties": {
+          "packageManager": {
+            "const": "yarn"
+          }
+        },
+        "required": [
+          "packageManager"
+        ]
+      },
+      "then": {
+        "properties": {
+          "packageManagerVersion": {
+            "type": "string",
+            "allOf": [
+              {
+                "pattern": "^(?:0|[1-9]\\d*)\\.(?:0|[1-9]\\d*)\\.(?:0|[1-9]\\d*)(?![\\s\\S])"
+              },
+              {
+                "pattern": "^4\\."
+              }
+            ]
+          },
+          "build": {
+            "type": "object",
+            "properties": {
+              "npmrc": {
+                "const": false
+              }
+            }
+          }
+        }
+      }
+    }
+  ],
   "definitions": {
     "relativePath": {
       "type": "string",

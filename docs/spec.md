@@ -23,7 +23,7 @@ hooks and once-per-deploy commands are separate lifecycle stages.
 ## Workspaces
 
 An optional `workspace` object selects `app` and ordered `buildDependencies` paths.
-Ship stays at the repository root and validates membership in root npm/pnpm package
+Ship stays at the repository root and validates membership in root npm/pnpm/Yarn package
 patterns. Root lockfile authority and per-package development dependency volumes
 are preserved. Node project runtimes retain the pruned repository layout; static
 outputs are copied relative to the app. Isolated framework SSR outputs and Gatsby
@@ -101,7 +101,7 @@ Document bounded support; do not claim arbitrary historical framework versions.
 
 ## Package managers and dependency isolation
 
-Target npm and pnpm, followed by Yarn. Resolve from `packageManager` and lockfiles;
+Support npm, pnpm and Yarn 4 with node_modules. Resolve from `packageManager` and lockfiles;
 conflicts require a choice. Pin package-manager versions and use frozen production
 installs. Package-manager proxies update host manifests/lockfiles from containers.
 Never consume host `node_modules` or install application dependencies on the host.
@@ -110,13 +110,16 @@ build contexts and runtime dependency packaging need explicit support before
 monorepos are accepted. Private registry access must use BuildKit secrets, never
 copy credentials into an image.
 
-Current implementation: npm and pnpm, committed authoritative lockfile, exact
-`packageManagerVersion`, single application. Init honors matching package.json
-`packageManager` version pins (accepting Corepack hash suffix syntax); pnpm
-requires a pin. Manager installation uses npm registry integrity verification;
+Current implementation: npm, pnpm and Yarn 4, a committed authoritative lockfile,
+exact `packageManagerVersion`, and an optional explicitly selected workspace app.
+Init honors matching package.json
+`packageManager` version pins (accepting Corepack hash suffix syntax); pnpm and Yarn
+require a pin. Manager installation uses npm registry integrity verification;
 the optional Corepack hash suffix is not independently verified by Ship.
 Development installs into a named dependency volume with `npm ci` or a forced,
-frozen pnpm install at every app start. Yarn/Bun and workspace files are rejected.
+frozen pnpm install, or immutable Yarn install at every app start. Yarn uses
+node_modules and root production focus; Plug'n'Play, older Yarn majors and Bun are
+rejected. See [Yarn setup](yarn.md) and [workspace boundaries](workspaces.md).
 The image user follows host UID/GID on Linux; generated source files should remain
 writable. Native Windows/macOS behavior requires CI/Docker verification.
 
