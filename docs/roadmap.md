@@ -131,7 +131,9 @@ the user authorizes the pre-release verification.
   See [npm release preparation](npm-release.md). The name remains `js-ship`.
 - Doctor recovery hints and JSON output implemented, including incomplete-project
   diagnosis, Docker/Compose checks and service-state guidance without collecting
-  container credentials/logs. Extend diagnosis for custom overrides and remote hosts.
+  container credentials/logs. Effective development override/project selection,
+  profile guidance and Docker endpoint diagnostics implemented. Remote path/port
+  reachability and custom service behavior remain unverified.
 - Optional Mutagen integration.
 
 Current local results and their limits are recorded in [verification](verification.md).

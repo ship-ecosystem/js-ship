@@ -42,15 +42,28 @@ export async function composePrefix(root: string, config: ShipConfig, environmen
   const filename = resolve(root, "ship", environment === "development" ? "docker-compose.generated.yml" : "docker-compose.production.yml");
   await mkdir(resolve(root, "ship"), { recursive: true });
   await writeFile(filename, render(model));
-  const prefix = ["docker", "compose", "--project-directory", root];
-  const env = resolve(root, environment === "development" ? ".env" : ".env.production");
-  if (await exists(env)) prefix.push("--env-file", env);
-  prefix.push("-f", filename);
-  if (environment === "development") {
-    for (const override of ["docker-compose.override.yml", "compose.override.yaml"]) {
-      const path = resolve(root, override);
-      if (await exists(path)) { prefix.push("-f", path); break; }
-    }
+  return { prefix: ["docker", "compose", ...await composeFileArguments(root, environment, filename)], model };
+}
+
+/** Ordered exactly as development commands select overrides; never writes files. */
+export async function developmentOverrideFiles(root: string): Promise<string[]> {
+  const files: string[] = [];
+  for (const name of ["docker-compose.override.yml", "compose.override.yaml"]) {
+    const path = resolve(root, name);
+    if (await exists(path)) files.push(path);
   }
-  return { prefix, model };
+  return files;
+}
+
+/** Shared file/env selection for normal commands and stdin-based diagnostics. */
+export async function composeFileArguments(root: string, environment: Environment, filename: string): Promise<string[]> {
+  const args = ["--project-directory", root];
+  const env = resolve(root, environment === "development" ? ".env" : ".env.production");
+  if (await exists(env)) args.push("--env-file", env);
+  args.push("-f", filename);
+  if (environment === "development") {
+    const [override] = await developmentOverrideFiles(root);
+    if (override) args.push("-f", override);
+  }
+  return args;
 }

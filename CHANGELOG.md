@@ -17,7 +17,8 @@ public prerelease; they are not a stable compatibility promise.
 - Production workers, process supervision, health checks, CLI proxies and portable
   image archives that can boot without application sources or the Ship SDK.
 - Interactive initialization with equivalent automation flags, plus development
-  doctor diagnostics, recovery hints and JSON output.
+  doctor diagnostics, effective override/project checks, remote endpoint guidance,
+  recovery hints and JSON output.
 - Separate public build variables, BuildKit secrets and private registry settings.
 - External database and environment guides, with an application-owned connection
   probe example for PostgreSQL, Redis and MongoDB.

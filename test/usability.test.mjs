@@ -61,10 +61,12 @@ test('TTY/CI/noninteractive detection does not prompt in automation', () => {
 
 function dockerRunner({ rows = [], daemon = true, cli = true, compose = true, composeVersion = '5.6.1' } = {}) {
   const calls = [];
-  const runner = async args => {
+  const runner = async (args, _cwd, options) => {
     calls.push(args);
     if (!cli || (args[1] === 'version' && !daemon) || (args[1] === 'compose' && !compose)) throw new Error('private-runtime-value');
     if (args[1] === '--version') return 'Docker version test';
+    if (args[1] === 'context') return args[2] === 'show' ? 'default' : JSON.stringify('unix:///var/run/docker.sock');
+    if (args[1] === 'compose' && args.includes('config')) return options.input.slice(options.input.indexOf('{'));
     if (args[1] === 'compose') return composeVersion;
     if (args[1] === 'version') return '29.9.2';
     if (args[1] === 'ps') return rows.map((_, i) => String(i + 1).padStart(12, 'a')).join('\n');

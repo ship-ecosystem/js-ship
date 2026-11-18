@@ -68,23 +68,78 @@ Compose compatibility and daemon access independently. Compose 2.24.0 or newer
 is needed for the generated optional env-file settings; see Docker's
 [env-file reference](https://docs.docker.com/reference/compose-file/services/#required).
 
-When the daemon and Compose are available, doctor inspects only containers
-labelled with the configured development project name. It reports unhealthy,
+When Compose is available, doctor validates the effective development model using
+the generated configuration on stdin, the development `.env` selection and the
+same override precedence as other development commands. No generated Compose file
+is written. When the daemon is also available, it inspects only containers
+labelled with that effective development project identity. It reports unhealthy,
 restarting, failed, stopped, starting, paused, missing and orphaned services.
 MongoDB health failures include a reminder to check persisted credentials and
 primary election while preserving data/config volumes. One-off Compose containers
-are excluded. Production releases are separate projects and are not inspected.
+are excluded. Production release directories are not discovered or loaded
+automatically; checks follow the current development configuration's identity.
+
+An override-added service is recognized by the effective model. An override or
+`COMPOSE_PROJECT_NAME` that changes the project identity produces a warning;
+container checks follow the effective identity. Doctor does not inspect the old
+project automatically. Missing profiled services are skipped with a profile
+warning; present profiled services still receive status checks. An override that
+removes the configured app is an error because `ship up` and app proxies need it.
 
 Doctor does not regenerate Compose files/templates, start or stop containers,
 remove volumes or install packages. It requests selected status/label fields;
 container environments, commands, logs and healthcheck output are not collected.
-Docker command failures produce fixed diagnostic messages rather than raw stderr.
+Compose validation can read environment files, includes and other referenced
+configuration just as Compose normally does. Its resolved model is processed in
+memory; only project/service metadata informs the report. Environment values,
+endpoint addresses, context values and raw resolved configuration are not printed
+or saved. Docker command failures produce fixed diagnostic messages rather than
+raw stdout/stderr.
 Configured extensions remain trusted host code and can have their own effects.
 
 Text output marks each check `OK`, `WARNING` or `ERROR` and provides relevant next
 steps. JSON contains `ok` and a `checks` array with `name`, `status`, `message` and
 an optional `hint`. Exit code 1 means at least one error; exit code 0 can include
 warnings such as a stopped stack. A running service without a healthcheck is
-reported as such. Doctor does not probe HTTP endpoints, validate custom Compose
-overrides or establish production readiness. Use `ship up` for startup/HTTP
+reported as such. Doctor validates override parsing/merging, not the behavior of
+custom commands, images, mounts or healthchecks. It does not probe HTTP endpoints
+or establish production readiness. Use `ship up` for startup/HTTP
 readiness and [the recovery guide](recovery.md) for operational steps.
+
+### Development override selection
+
+Only the first existing file is selected: `docker-compose.override.yml`, then
+`compose.override.yaml`. If both exist, doctor explains that the second is ignored.
+The selection is identical for development commands; production builds and release
+exports ignore these development overrides. An invalid selected override produces
+an error and skips container inspection because its project identity is unknown.
+Fix YAML, interpolation, referenced files or service dependencies before retrying.
+See [Compose configuration](https://docs.docker.com/reference/cli/docker/compose/config/).
+
+Doctor resolves the current configuration, so it cannot prove a running container
+was created from the latest override. Recreate affected services after reviewing
+changes. A project rename can leave the previous project's containers and volumes
+in place; stop that previous stack using its original identity/configuration.
+Doctor does not stop it or migrate data automatically.
+
+### Docker endpoints and remote hosts
+
+Doctor checks the SDK process environment: `DOCKER_CONTEXT` when set, otherwise
+`DOCKER_HOST` when set, otherwise the configured context. Named contexts are inspected explicitly; context command
+defaults can differ from the effective daemon selection. It reports only socket,
+network or unknown endpoint classification and never the address, user, context
+name or TLS material. See [Docker context/environment precedence](https://docs.docker.com/reference/cli/docker/).
+
+A network endpoint produces guidance rather than an automatic failure: the daemon
+may be remote or behind a tunnel. A Unix/named-pipe socket also does not prove
+where the daemon runs. Docker Desktop has its own path-sharing mechanism; socket
+forwarding and loopback TCP endpoints can hide a remote daemon.
+
+Development bind mounts refer to paths on the daemon host, not the SDK host.
+Published `127.0.0.1` ports and Ship's startup HTTP checks can also refer to
+different machines. Doctor does not verify remote source synchronization, host
+paths, port forwarding or network reachability. Use a local development daemon,
+or arrange those facilities yourself. For deployment, copy a portable release to
+the destination and use its generated loading/Compose instructions there; it
+contains private environment values and must stay private. See
+[Docker bind-mount constraints](https://docs.docker.com/engine/storage/bind-mounts/#considerations-and-constraints).

@@ -126,10 +126,12 @@ reinitialization; `--force` replaces them. Changing the package manager, framewo
 deployment mode, output/base path, entrypoint or runtime files requires
 `ship init --force` after reviewing template edits. Older template formats also
 require this refresh. Generated Compose files are disposable. Development
-commands honor `docker-compose.override.yml` or `compose.override.yaml`.
+commands honor the first existing `docker-compose.override.yml` or
+`compose.override.yaml`. Doctor validates that effective configuration and explains
+Docker endpoint limits; see [diagnostics](docs/usability.md#doctor).
 
 Development binds HTTP to localhost at `APP_PORT` or the configured framework port. Application dependencies
-live in a named container volume. Startup uses `npm ci` or a forced, frozen pnpm
+live in a named container volume. Startup uses `npm ci`, a forced frozen pnpm install, or an immutable Yarn
 install to refresh dependencies after branch/runtime changes. Rebuild with
 `ship up` after changes. Each explicit development `up` recreates the app so its
 install runs even when Compose configuration is unchanged; infrastructure follows

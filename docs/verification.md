@@ -548,3 +548,42 @@ The repository remains private and npm remains unpublished.
   suites and GitHub CI remain deferred. The package workflows remain disabled
   under the Actions budget restriction. The repository remains private and npm
   remains unpublished.
+
+
+## Effective Compose and Docker endpoint diagnostics milestone
+
+- All 185 local unit/boundary tests passed under Node 22.23.5 with no skips.
+  New checks cover effective override-added services/project identity, ignored
+  secondary override files, optional profiles, removed app services, malformed
+  metadata, cancellation, fixed private failures and unchanged project files.
+  Literal multiline stdin and an early-closing child exercise the process runner's
+  new input support, including its broken-pipe handling.
+- Doctor passes its in-memory development model to `docker compose config` on
+  stdin using shared environment/file-selection arguments. It does not regenerate
+  Compose files. Resolved project/service metadata governs inspection; profile
+  activation intent and custom command/mount/healthcheck behavior remain outside
+  its guarantees. Resolved configuration and raw failures are omitted from reports;
+  container probes still request only status/label metadata.
+- One focused local Docker case passed on the installed Linux Docker/Compose
+  versions. A disposable labelled container was recognized under an override's
+  interpolated project name; an override-added service was not misclassified as
+  orphaned, a missing profiled service was skipped and an invalid ignored override
+  was not parsed. Invalid selected YAML produced a fixed private error and skipped
+  container inspection. Generated project files remained unchanged.
+- The live fixture also used an isolated temporary Docker configuration to verify
+  explicit named-context metadata selection with DOCKER_CONTEXT and DOCKER_HOST
+  both set. Context-command defaults returned different metadata during initial
+  verification, so doctor now selects the context explicitly. Other fixture probes
+  stayed on the local daemon: this establishes metadata precedence, not remote
+  SSH/TCP authentication, filesystem sharing or port forwarding. Unit fixtures
+  cover Unix/named-pipe sockets, SSH/TCP/HTTP(S), loopback/IPv6 endpoints and
+  unavailable endpoint metadata without including addresses or context values.
+- The installed 120-file tarball passed CLI/API/schema/consumer TypeScript checks,
+  including installed doctor JSON. Updated [diagnostics guidance](usability.md#doctor)
+  documents override selection, project renaming, profiles, private model handling
+  and remote bind/loopback limitations. Remote path/port reachability, Docker
+  Desktop sharing variants and older supported Compose versions need live checks.
+- The prepared Docker matrix now contains 19 suites and 43 cases. Only the focused
+  doctor case ran locally for this milestone; the full Docker/browser suites and
+  GitHub CI remain deferred. All package workflows remain disabled under the
+  Actions budget restriction. The repository remains private and npm unpublished.
