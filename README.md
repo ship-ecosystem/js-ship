@@ -8,7 +8,8 @@ The npm package name is `js-ship`; publishing remains blocked with `private: tru
 until release checks are complete. Once published, install it with
 `npm i js-ship` and run `npx ship --help`. The first public tests will use
 `npm i js-ship@next`; see [npm release preparation](docs/npm-release.md) and
-[the changelog](CHANGELOG.md).
+[the changelog](CHANGELOG.md). The current release gates and deferred scope are
+recorded in [alpha readiness](docs/alpha-readiness.md).
 
 Implemented now: all fourteen requested framework adapters, generic Node apps,
 pinned npm/pnpm/Yarn 4 workflows, PostgreSQL, Redis, MongoDB, named instances, production

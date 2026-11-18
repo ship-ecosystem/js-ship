@@ -41,3 +41,19 @@ test('npm policy rejects dev publication, stable versions and malformed prerelea
   }
   for (const version of ['0.1.0-alpha.0', '0.1.0-beta.1', '0.1.0-rc.2']) assert.equal(check(fixture(version)).publish, true);
 });
+
+
+test('offline candidate preflight enforces publishable metadata without requiring GitHub or registry access', () => {
+  const f = fixture(); f.options = { candidate: true };
+  assert.equal(check(f).publish, false);
+  for (const change of [
+    f => { f.pkg.private = true; },
+    f => { f.changelog = '## Unreleased\n'; },
+    f => { f.changelog = `## ${f.pkg.version}\n`; },
+  ]) {
+    const candidate = fixture(); candidate.options = { candidate: true }; change(candidate);
+    assert.throws(() => check(candidate), /npm release:/);
+  }
+  const dev = fixture('0.1.0-dev.0'); dev.options = { candidate: true };
+  assert.throws(() => check(dev), /development snapshots/);
+});

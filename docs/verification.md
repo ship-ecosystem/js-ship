@@ -587,3 +587,36 @@ The repository remains private and npm remains unpublished.
   doctor case ran locally for this milestone; the full Docker/browser suites and
   GitHub CI remain deferred. All package workflows remain disabled under the
   Actions budget restriction. The repository remains private and npm unpublished.
+
+
+## First-alpha readiness review
+
+- Reviewed release metadata/guards, public package contents, documentation links,
+  repository visibility, workflow states, npm account readiness and bounded
+  history/dependency checks. The [readiness review](alpha-readiness.md) separates
+  the proposed alpha scope from future enhancements and account/CI/publication
+  gates. No visibility change, tag, login, registry write or CI run occurred.
+- Fixed the hardcoded Ship version: CLI/help and application-release provenance
+  now read the installed SDK manifest. All 187 local unit/boundary tests passed
+  under Node 22.23.5 with no skips. The new version-bump regression uses a private
+  temporary SDK copy and mocked image export; it is not a live Docker release.
+- Added an offline `--candidate` metadata preflight requiring a publishable
+  non-development prerelease, explicit `private: false`, synchronized lockfile
+  versions, matching release notes and a retained Unreleased section. Only the
+  existing `--publish` preflight additionally requires the exact public GitHub
+  identity/tag; candidate validation does not authorize a publish.
+- An isolated copy staged `0.1.0-alpha.0`, synchronized its lockfile/changelog and
+  passed candidate validation plus an installed 120-file tarball check. This was
+  a version-bump rehearsal before adding the readiness document, not an approved
+  candidate. The actual development checkout's installed 121-file tarball then
+  passed CLI/API/schema/consumer TypeScript checks at `0.1.0-dev.0`.
+- npm audit reported zero advisories, including development dependencies, for the
+  current lockfile. Local documentation file links resolved. A limited scan of
+  21 reachable commits found no credential-file paths or common GitHub/npm/AWS
+  token/private-key literals; this does not establish comprehensive secret-scan
+  coverage. Repeat final source/history review on the actual release candidate.
+- The public registry returned 404 for `js-ship`; no name was reserved. The local
+  npm CLI returned ENEEDAUTH, leaving authentication, email/second-factor checks
+  and publishing rights as release gates. The repository was confirmed private
+  and all four package workflows manually disabled. Full final-candidate CI,
+  public visibility and publication remain explicitly deferred.

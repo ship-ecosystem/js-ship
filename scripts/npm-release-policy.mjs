@@ -13,12 +13,15 @@ export function validateNpmRelease(pkg, lock, changelog, options = {}) {
   if (pkg.publishConfig?.registry !== 'https://registry.npmjs.org/' || pkg.publishConfig?.access !== 'public' || pkg.publishConfig?.tag !== 'next') {
     fail('publishConfig must use the public npm registry and next dist-tag.');
   }
-  if (options.publish) {
+  if (!changelog.split(/\r?\n/).includes('## Unreleased')) fail('keep an Unreleased changelog section.');
+  if (options.publish || options.candidate) {
     if (pkg.private !== false) fail('private must be explicitly false for publication.');
     if (version.includes('-dev.')) fail('development snapshots cannot be published.');
+    if (!changelog.split(/\r?\n/).includes(`## ${version}`)) fail('add a changelog section for the exact release version.');
+  }
+  if (options.publish) {
     if (options.ref !== `refs/tags/v${version}`) fail('dispatch the publish workflow on the exact v<package-version> tag.');
     if (options.repository !== 'ship-ecosystem/js-ship' || options.repositoryPrivate !== 'false') fail('publication requires the public ship-ecosystem/js-ship repository.');
-    if (!changelog.split(/\r?\n/).includes(`## ${version}`)) fail('add a changelog section for the exact release version.');
-  } else if (!changelog.split(/\r?\n/).includes('## Unreleased')) fail('preview requires an Unreleased changelog section.');
+  }
   return { name: pkg.name, version, tag: 'next', publish: options.publish === true };
 }

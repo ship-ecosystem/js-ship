@@ -50,13 +50,35 @@ After the remaining package work and an explicit release decision:
    `npm version 0.1.0-alpha.0 --no-git-tag-version` to synchronize both manifests,
    explicitly set `private: false`, and move the release notes from `Unreleased`
    into a matching `## 0.1.0-alpha.0` section. Keep an empty `## Unreleased` section.
-4. Commit, run the full quality/integration checks and preview the tarball. Create
+4. Run the offline candidate preflight below. Commit, then run the authorized full
+   quality/integration checks and preview the tarball. Create
    a matching `v0.1.0-alpha.0` tag pointing to the reviewed commit. Protect release
    tags through repository rules so only maintainers can create or move them.
 
 The checked-in `publishConfig` fixes the registry to npmjs.org, public access and
 `next`. The policy rejects development and stable releases; stable publication
 needs a later policy change. Do not use `latest` during prerelease testing.
+
+## Offline candidate preflight
+
+Before the final CI/publication window, a prepared alpha/beta/rc checkout can run:
+
+```sh
+npm run release:check -- --candidate
+npm run test:package -- /tmp/js-ship-candidate
+```
+
+The candidate preflight requires matching manifest/lockfile versions,
+`private: false`, a non-development prerelease, matching release notes and an
+`Unreleased` section. It makes no registry writes and does not require a public
+repository, GitHub environment variables or an npm login. The current private
+`0.1.0-dev.0` checkout deliberately fails this stricter check; use normal preview
+until candidate preparation is authorized. `--publish` additionally checks the
+exact GitHub tag and public repository identity used by the publishing workflow.
+
+CLI output and application-release `release.json` provenance read the installed
+manifest's version; no separate source version constant needs updating. See the
+[alpha readiness review](alpha-readiness.md) for the current release gates.
 
 ## First-publish ownership bootstrap
 

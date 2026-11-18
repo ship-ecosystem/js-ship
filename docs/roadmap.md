@@ -98,8 +98,10 @@ Implemented with planning, output-file and bootstrap tests:
 
 ## Public testing approach
 
-Complete the remaining package work first, then make the GitHub repository public
-and publish a clearly marked npm prerelease for public testing. Authenticated
+The first-alpha implementation review is complete; prepare the release candidate
+and complete the account/verification gates in [alpha readiness](alpha-readiness.md).
+Then make the GitHub repository public and publish a clearly marked npm prerelease
+for public testing after authorization. Authenticated
 private-registry download verification is deferred; do not block this work on it.
 The development repository remains private and the npm package remains unpublished.
 

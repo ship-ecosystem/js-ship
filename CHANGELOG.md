@@ -22,6 +22,8 @@ public prerelease; they are not a stable compatibility promise.
 - Separate public build variables, BuildKit secrets and private registry settings.
 - External database and environment guides, with an application-owned connection
   probe example for PostgreSQL, Redis and MongoDB.
+- Manifest-derived CLI/release provenance versions and an offline prerelease
+  candidate preflight.
 - Offline JSON Schema, editor integration and validated local extension modules.
 - Reviewed Node version floors, digest-pinned parent images and dependency updates.
 

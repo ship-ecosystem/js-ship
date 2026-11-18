@@ -1,4 +1,4 @@
-import { createReadStream } from "node:fs";
+import { createReadStream, readFileSync } from "node:fs";
 import { chmod, copyFile, mkdir, mkdtemp, rename, rm, writeFile } from "node:fs/promises";
 import { createHash } from "node:crypto";
 import { resolve, join } from "node:path";
@@ -13,7 +13,8 @@ import { productionProblems } from "./production.js";
 import { buildContextProblems, buildSecretProblems } from "./build-environment.js";
 import { composePrefix } from "./project.js";
 
-export const VERSION = "0.1.0-dev.0";
+// The installed manifest is authoritative for CLI and exported release metadata.
+export const VERSION: string = JSON.parse(readFileSync(new URL("../package.json", import.meta.url), "utf8")).version;
 export function validateTag(tag: string): void {
   if (!/^[A-Za-z0-9_][A-Za-z0-9_.-]{0,127}(?![\s\S])/.test(tag)) throw new ConfigError(["Release tag must be a Docker tag (1–128 letters, digits, underscores, dots or hyphens; no leading dot or hyphen)."]);
 }
