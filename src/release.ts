@@ -4,13 +4,13 @@ import { createHash } from "node:crypto";
 import { resolve, join } from "node:path";
 import type { ExtensionRegistry, ComposeModel, ShipConfig } from "./contracts.js";
 import type { Runner } from "./process.js";
-import { exists } from "./config.js";
+import { exists, readJson } from "./config.js";
 import { commandArgv, externalNetworks, processDefinition, selections, render } from "./compose.js";
 import { adapterFor } from "./adapters.js";
 
 import { loadExtensions } from "./extensions.js";
 import { ConfigError } from "./errors.js";
-import { parseEnv, productionProblems } from "./production.js";
+import { adapterProductionProblems, parseEnv, productionProblems } from "./production.js";
 import { buildContextProblems, buildSecretProblems } from "./build-environment.js";
 import { composePrefix } from "./project.js";
 
@@ -45,9 +45,7 @@ export async function buildProduction(root: string, config: ShipConfig, runner: 
   validateTag(tag);
   const registry = options.registry ?? await loadExtensions(root, config.extensions);
   const { prefix, model } = await composePrefix(root, config, "production", tag, { registry });
-  const release = adapterFor(config, registry).describeRelease?.(config, root);
-  const settings = await exists(resolve(root, ".env.production")) ? parseEnv(await readFile(resolve(root, ".env.production"), "utf8")) : {};
-  const problems = [...(release?.requiredEnv ?? []).filter(key => !settings[key]?.trim()).map(key => `${key} is required in .env.production by the framework adapter.`), ...await productionProblems(model, root), ...await buildContextProblems(root), ...await buildSecretProblems(config, root)];
+  const problems = [...await adapterProductionProblems(config, root, registry), ...await productionProblems(model, root), ...await buildContextProblems(root), ...await buildSecretProblems(config, root)];
   if (problems.length) throw new ConfigError(problems);
   // Workers share the app image, and named MongoDB instances share one infrastructure image.
   const owners = new Map<string, string>();
@@ -96,6 +94,8 @@ function namedVolumes(service: Record<string, unknown>, model: ComposeModel): st
 }
 export async function assembleRelease(root: string, config: ShipConfig, tag: string, runner: Runner, registry?: ExtensionRegistry, options: ReleaseOptions = {}): Promise<string> {
   validateTag(tag);
+  const authored = await readJson(resolve(root, "ship.json"));
+  if (!authored || typeof authored !== "object" || !("name" in authored) || authored.name !== config.name) throw new ConfigError(["Release requires an explicit stable name in ship.json matching the planned application. Run ship init --name NAME before releasing."]);
   registry ??= await loadExtensions(root, config.extensions);
   const parent = resolve(root, "dist", "ship");
   const destination = join(parent, tag);

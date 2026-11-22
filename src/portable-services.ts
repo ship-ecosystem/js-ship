@@ -29,7 +29,7 @@ function portable(key: string): ServiceDefinition {
     return value;
   };
   return {
-    key, label: data.label, group: data.group, volumes: suffixes,
+    key, label: data.label, group: data.group, volumes: key === "cypress" ? ["node-modules", "app-modules"] : suffixes,
     ...(Object.keys(data.prod).length === 0 ? { developmentOnly: true } : {}),
     ...(key === "cypress" ? { onDemand: true } : {}),
     compose(c) {
@@ -48,7 +48,9 @@ function portable(key: string): ServiceDefinition {
       if (key === "cypress") {
         result.working_dir = c.config?.workspace ? `/e2e/${c.config.workspace.app}` : "/e2e";
         result.environment = { CYPRESS_BASE_URL: appUrl(c) };
-        result.volumes = [{ type: "bind", source: c.projectRoot ?? ".", target: "/e2e" }];
+        result.volumes = [{ type: "bind", source: c.projectRoot ?? ".", target: "/e2e" },
+          { type: "volume", source: c.volume("node-modules"), target: "/e2e/node_modules" },
+          ...(c.config?.workspace ? [{ type: "volume", source: c.volume("app-modules"), target: `/e2e/${c.config.workspace.app}/node_modules` }] : [])];
       }
       // Development dashboards bind loopback. Production uses external HTTP routing
       // unless the project explicitly opts into publishing ports.

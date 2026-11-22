@@ -154,6 +154,7 @@ async function collectInitOptions(root: string, supplied: InitOptions, ask: AskI
     else if (await readFile(path, "utf8") !== content) changes.push(`${options.force || name === "ship.schema.json" ? "update" : "preserve edited"} ship/${name}`);
   }
   inform(`Files: ${changes.join("; ")}.`);
+  if (typeof raw.name === "string" && raw.name !== config.name) inform(`WARNING: changing name from ${raw.name} to ${config.name} creates a different Docker project and volume prefix. Existing data remains under the old identity; migrate it explicitly before deploying.`);
   inform(options.force ? "--force will replace generated templates, including edited templates." : "Edited templates are preserved; --force is required to replace them.");
   if (await choose("confirm", "Write ship.json and generated files?", "no", ["yes", "no"]) !== "yes") throw new ProcessError("Initialization cancelled; no files written.", 130);
   return options;

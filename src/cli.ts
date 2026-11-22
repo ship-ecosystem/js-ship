@@ -10,7 +10,7 @@ import { exists, parseConfig, readJson, readConfig, readManifest } from "./confi
 import { loadExtensions } from "./extensions.js";
 import { composePrefix, loadProject } from "./project.js";
 import { buildProjectCompose, selections } from "./compose.js";
-import { productionProblems } from "./production.js";
+import { adapterProductionProblems, productionProblems } from "./production.js";
 import { assembleRelease, buildProduction, VERSION } from "./release.js";
 import { run } from "./process.js";
 import { ConfigError, ProcessError } from "./errors.js";
@@ -149,7 +149,7 @@ async function main(argv: string[]): Promise<void> {
     noArgs(args);
     await buildProjectCompose(config, root, "development", "local", registry);
     const model = await buildProjectCompose(config, root, "production", "local", registry);
-    const problems = [...await productionProblems(model, root), ...await buildContextProblems(root), ...await buildSecretProblems(config, root)];
+    const problems = [...await adapterProductionProblems(config, root, registry), ...await productionProblems(model, root), ...await buildContextProblems(root), ...await buildSecretProblems(config, root)];
     if (problems.length) throw new ConfigError(problems);
     console.log("Configuration, project files and development/production models are valid."); return;
   }
@@ -189,7 +189,7 @@ async function main(argv: string[]): Promise<void> {
     const tool = selections(config, "development", root, registry).find(s => s.definition.group === "testing" && !s.context.envPrefix);
     if (!tool) throw new ConfigError(["Select a testing service with ship init or run your package's test script with ship npm/pnpm/yarn."]);
     const forwarded = args[0] === "--" ? args.slice(1) : args;
-    if (tool.definition.key === "cypress") await run([...prefix, "run", "--rm", "--no-deps", ...(!process.stdin.isTTY ? ["-T"] : []), "--entrypoint", "cypress", tool.context.serviceName, "run", ...forwarded], root);
+    if (tool.definition.key === "cypress") await run([...prefix, "run", "--rm", "--no-deps", ...(!process.stdin.isTTY ? ["-T"] : []), "--entrypoint", "sh", tool.context.serviceName, "-c", 'set -eu; if [ ! -e /e2e/node_modules/cypress ]; then ln -s /usr/local/lib/node_modules/cypress /e2e/node_modules/cypress; fi; exec cypress run "$@"', "ship-cypress", ...forwarded], root);
     else if (tool.definition.key === "playwright") await run(applicationCommand(app, [config.packageManager, "exec", ...(config.packageManager === "npm" ? ["--"] : []), "playwright", "test", ...forwarded]), root);
     else {
       const manifest = await readManifest(applicationRoot(config, root));

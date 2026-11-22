@@ -27,9 +27,10 @@ async function appendEnvironment(path: string, values: Record<string, string>, p
   await writeFile(path, `${current}${current && !current.endsWith("\n") ? "\n" : ""}\n# JavaScript Ship — review values before use\n${added}\n`, { mode: privateFile ? 0o600 : 0o644 });
   if (privateFile) await chmod(path, 0o600);
 }
-export async function writeEnvironmentExamples(root: string, development: ComposeModel, production: ComposeModel): Promise<void> {
+export async function writeEnvironmentExamples(root: string, development: ComposeModel, production: ComposeModel, additionalRequired: readonly string[] = []): Promise<void> {
   const defaults = environmentDefaults(development);
   const required = new Set([...JSON.stringify(production).matchAll(/\$\$|\$\{([A-Za-z_][A-Za-z0-9_]*):\?/g)].flatMap(m => m[1] ? [m[1]] : []));
+  for (const key of additionalRequired) { required.add(key); defaults[key] ??= ""; }
   await appendEnvironment(resolve(root, ".env"), defaults, true);
   await appendEnvironment(resolve(root, ".env.example"), defaults);
   await appendEnvironment(resolve(root, ".env.production.example"), Object.fromEntries(Object.entries(defaults).map(([key, value]) => [key, required.has(key) ? "CHANGE_ME" : value])));

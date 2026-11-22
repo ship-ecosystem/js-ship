@@ -1,6 +1,7 @@
 import { readFile } from "node:fs/promises";
 import { resolve } from "node:path";
-import type { ComposeModel } from "./contracts.js";
+import { adapterFor } from "./adapters.js";
+import type { ComposeModel, ShipConfig, ExtensionRegistry } from "./contracts.js";
 import { exists } from "./config.js";
 import { ConfigError } from "./errors.js";
 
@@ -32,4 +33,12 @@ export async function productionProblems(model: ComposeModel, root: string, requ
   const values = parseEnv(await readFile(path, "utf8"));
   return required.flatMap(key => !values[key] ? [`${key} is required in .env.production.`]
     : ["shipsecret", "shiprootsecret", "changeme", "change_me", "secret", "rootsecret", "shipsecret123", "shiproot123", "shipsecretplaceholder", "ship-centrifugo-api-key", "ship-centrifugo-token-secret", "guest", "0000000000000000000000000000000000000000000000000000000000000000"].includes(values[key]!.toLowerCase()) ? [`${key} still uses a development credential.`] : []);
+}
+
+export async function adapterProductionProblems(config: ShipConfig, root: string, registry?: ExtensionRegistry): Promise<string[]> {
+  const required = adapterFor(config, registry).describeRelease?.(config, root)?.requiredEnv ?? [];
+  if (!required.length) return [];
+  const path = resolve(root, ".env.production");
+  const settings = await exists(path) ? parseEnv(await readFile(path, "utf8")) : {};
+  return required.filter(key => !settings[key]?.trim() || /^(?:CHANGE_ME|changeme)$/i.test(settings[key]!)).map(key => `${key} is required in .env.production by the framework adapter.`);
 }

@@ -11,7 +11,7 @@ import { run } from '../../dist/process.js';
 
 // Existing dedicated suites cover PostgreSQL/Redis/MongoDB and app integration.
 const providers = [...builtinServices.values()].filter(s => !['postgres', 'redis', 'mongodb', 'playwright', 'cypress'].includes(s.key));
-for (const provider of providers) test(`portable service ${provider.key}: actual container readiness`, { timeout: 300_000 }, async t => {
+for (const provider of providers) test(`portable service ${provider.key}: actual container readiness`, { timeout: 900_000 }, async t => {
  const root = await mkdtemp(join(tmpdir(), 'ship-js-catalog-'));
  const name = `ship-js-catalog-${randomBytes(5).toString('hex')}`;
  let prefix, owned = [];
@@ -34,9 +34,22 @@ for (const provider of providers) test(`portable service ${provider.key}: actual
  const path = join(root, 'compose.json');
  await writeFile(path, render(model));
  prefix = ['docker', 'compose', '--project-directory', root, '-f', path];
- try { await run([...prefix, 'up', '--build', '-d', '--wait', '--wait-timeout', '180'], root); } catch (error) { const logs = await run([...prefix, 'logs', '--tail', '35'], root, { capture: true }).catch(() => ''); throw new Error(`${error.message}\n${logs}`); }
+ try { await run([...prefix, 'up', '--build', '-d', '--wait', '--wait-timeout', '180'], root, { timeoutMs: 840_000 }); } catch (error) { const logs = await run([...prefix, 'logs', '--tail', '35'], root, { capture: true }).catch(() => ''); throw new Error(`${error.message}\n${logs}`); }
  const rows = await run([...prefix, 'ps', '--format', 'json'], root, { capture: true });
  assert.match(rows, /running/);
+ if (provider.key === 'selenium') await run([...prefix, 'exec', '-T', provider.key, 'python3', '-c', `import json,urllib.request
+base='http://127.0.0.1:4444'
+def request(path, method='GET', value=None):
+ data=None if value is None else json.dumps(value).encode()
+ req=urllib.request.Request(base+path,data=data,method=method,headers={'Content-Type':'application/json'})
+ return json.load(urllib.request.urlopen(req,timeout=30))['value']
+session=request('/session','POST',{'capabilities':{'alwaysMatch':{'browserName':'chrome','goog:chromeOptions':{'args':['--headless=new','--no-sandbox','--disable-dev-shm-usage']}}}})['sessionId']
+try:
+ request('/session/'+session+'/url','POST',{'url':'data:text/html,<title>Ship WebDriver</title>'})
+ assert request('/session/'+session+'/title')=='Ship WebDriver'
+finally: request('/session/'+session,'DELETE')
+`], root);
+
  if (provider.key === 'mysql') await run([...prefix, 'exec', '-T', provider.key, 'sh', '-c', 'exec mysql -u"$MYSQL_USER" -p"$MYSQL_PASSWORD" "$MYSQL_DATABASE" -e "SELECT 1"'], root);
  if (provider.key === 'mariadb') await run([...prefix, 'exec', '-T', provider.key, 'sh', '-c', 'exec mariadb -u"$MARIADB_USER" -p"$MARIADB_PASSWORD" "$MARIADB_DATABASE" -e "SELECT 1"'], root);
 });

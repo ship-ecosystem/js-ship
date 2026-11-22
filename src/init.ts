@@ -98,6 +98,7 @@ export async function planInitProject(root: string, options: InitOptions = {}, r
 
 export async function initProject(root: string, options: InitOptions = {}, registry?: ExtensionRegistry): Promise<ShipConfig> {
   const { config, registry: selectedRegistry, existing } = await planInitProject(root, options, registry);
+  const requiredEnv = adapterFor(config, selectedRegistry).describeRelease?.(config, root)?.requiredEnv ?? [];
   // All validation happens before publishing any files.
   await mkdir(resolve(root, "ship"), { recursive: true });
   for (const [filename, contents] of Object.entries(await renderTemplates(config, await resolveWorkspace(config, root), selectedRegistry))) {
@@ -117,6 +118,6 @@ export async function initProject(root: string, options: InitOptions = {}, regis
     await writeFile(ignorePath, `${ignore}\n# Keep credential exclusions after negation rules.\n${BUILD_EXCLUSIONS.join("\n")}\n`);
   }
   await appendRules(resolve(root, ".gitignore"), [".ship-secrets/", ".npmrc", "node_modules/", ".env", ".env.*", "!.env.example", "!.env.production.example", "dist/ship/", "ship/.gatsby-static.json", "ship/docker-compose.generated.yml", "ship/docker-compose.production.yml"]);
-  await writeEnvironmentExamples(root, await buildProjectCompose(config, root, "development", "local", selectedRegistry), await buildProjectCompose(config, root, "production", "local", selectedRegistry));
+  await writeEnvironmentExamples(root, await buildProjectCompose(config, root, "development", "local", selectedRegistry), await buildProjectCompose(config, root, "production", "local", selectedRegistry), requiredEnv);
   return config;
 }

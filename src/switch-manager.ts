@@ -41,7 +41,7 @@ export async function switchPackageManager(root: string, target: string, runner:
   for (const file of files) backup.set(file, await exists(resolve(root, file)) ? await readFile(resolve(root, file)) : null);
   try {
     const distribution = name === "yarn" ? "@yarnpkg/cli-dist" : name;
-    await runner([...prefix, "exec", "-T", "--user", "0", "--workdir", "/app", app, "npm", "install", "--global", "--force", "--engine-strict", `${distribution}@${version}`, "--no-audit", "--no-fund"], root);
+    await runner([...prefix, "exec", "-T", "--user", "0", "--workdir", "/app", app, "npm", "install", "--global", "--force", "--engine-strict", `${distribution}@${version}`, ...(name === "pnpm" ? ["--allow-scripts=pnpm"] : []), "--no-audit", "--no-fund"], root);
     await writeFile(resolve(root, "package.json"), JSON.stringify({ ...manifest, packageManager: `${name}@${version}` }, null, 2) + "\n");
     if (name === "yarn") {
       const path = resolve(root, ".yarnrc.yml");
