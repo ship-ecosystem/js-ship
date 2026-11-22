@@ -1,3 +1,4 @@
+import { SERVICE_IMAGES } from "./service-images.js";
 // Portable service definitions adapted from php-ship 0964965. No PHP is needed at runtime.
 // Edit reviewed image tags, commands and probes here; release pins registry digests.
 export const portableServiceData: Record<string, { label: string; group: string; dev: Record<string, Record<string, unknown>>; prod: Record<string, Record<string, unknown>> | unknown[]; env: Record<string, string>; http: { port: number; role: string; health?: string | null; urlSetting?: string | null }[]; shell: string[] | null }> = {
@@ -6,7 +7,7 @@ export const portableServiceData: Record<string, { label: string; group: string;
     "group": "database",
     "dev": {
       "mysql-ship_placeholder": {
-        "image": "mysql:9.7",
+        "image": SERVICE_IMAGES.mysql,
         "environment": {
           "MYSQL_DATABASE": "${SHIP_PLACEHOLDER_DB_DATABASE:-app}",
           "MYSQL_USER": "${SHIP_PLACEHOLDER_DB_USERNAME:-app}",
@@ -32,7 +33,7 @@ export const portableServiceData: Record<string, { label: string; group: string;
     },
     "prod": {
       "mysql-ship_placeholder": {
-        "image": "mysql:9.7",
+        "image": SERVICE_IMAGES.mysql,
         "environment": {
           "MYSQL_DATABASE": "${SHIP_PLACEHOLDER_DB_DATABASE:-app}",
           "MYSQL_USER": "${SHIP_PLACEHOLDER_DB_USERNAME:-app}",
@@ -76,7 +77,7 @@ export const portableServiceData: Record<string, { label: string; group: string;
     "group": "database",
     "dev": {
       "mariadb-ship_placeholder": {
-        "image": "mariadb:13.0",
+        "image": SERVICE_IMAGES.mariadb,
         "environment": {
           "MARIADB_DATABASE": "${SHIP_PLACEHOLDER_DB_DATABASE:-app}",
           "MARIADB_USER": "${SHIP_PLACEHOLDER_DB_USERNAME:-app}",
@@ -101,7 +102,7 @@ export const portableServiceData: Record<string, { label: string; group: string;
     },
     "prod": {
       "mariadb-ship_placeholder": {
-        "image": "mariadb:13.0",
+        "image": SERVICE_IMAGES.mariadb,
         "environment": {
           "MARIADB_DATABASE": "${SHIP_PLACEHOLDER_DB_DATABASE:-app}",
           "MARIADB_USER": "${SHIP_PLACEHOLDER_DB_USERNAME:-app}",
@@ -144,7 +145,7 @@ export const portableServiceData: Record<string, { label: string; group: string;
     "group": "database",
     "dev": {
       "sqlserver-ship_placeholder": {
-        "image": "mcr.microsoft.com/mssql/server:2025-CU11-ubuntu-24.04",
+        "image": SERVICE_IMAGES.sqlserver,
         "platform": "linux/amd64",
         "entrypoint": [
           "/bin/bash",
@@ -177,7 +178,7 @@ export const portableServiceData: Record<string, { label: string; group: string;
     },
     "prod": {
       "sqlserver-ship_placeholder": {
-        "image": "mcr.microsoft.com/mssql/server:2025-CU11-ubuntu-24.04",
+        "image": SERVICE_IMAGES.sqlserver,
         "platform": "linux/amd64",
         "entrypoint": [
           "/bin/bash",
@@ -229,7 +230,7 @@ export const portableServiceData: Record<string, { label: string; group: string;
     "group": "cache",
     "dev": {
       "valkey-ship_placeholder": {
-        "image": "valkey/valkey:9.0-alpine",
+        "image": SERVICE_IMAGES.valkey,
         "command": [
           "valkey-server",
           "--save",
@@ -252,7 +253,7 @@ export const portableServiceData: Record<string, { label: string; group: string;
     },
     "prod": {
       "valkey-ship_placeholder": {
-        "image": "valkey/valkey:9.0-alpine",
+        "image": SERVICE_IMAGES.valkey,
         "command": [
           "valkey-server",
           "--save",
@@ -285,7 +286,7 @@ export const portableServiceData: Record<string, { label: string; group: string;
     "group": "cache",
     "dev": {
       "memcached-ship_placeholder": {
-        "image": "memcached:1.6-alpine",
+        "image": SERVICE_IMAGES.memcached,
         "healthcheck": {
           "test": [
             "CMD-SHELL",
@@ -299,7 +300,7 @@ export const portableServiceData: Record<string, { label: string; group: string;
     },
     "prod": {
       "memcached-ship_placeholder": {
-        "image": "memcached:1.6-alpine",
+        "image": SERVICE_IMAGES.memcached,
         "healthcheck": {
           "test": [
             "CMD-SHELL",
@@ -323,7 +324,7 @@ export const portableServiceData: Record<string, { label: string; group: string;
     "group": "storage",
     "dev": {
       "seaweedfs-ship_placeholder": {
-        "image": "chrislusf/seaweedfs:4.46",
+        "image": SERVICE_IMAGES.seaweedfs,
         "entrypoint": [
           "/bin/sh",
           "-c"
@@ -355,7 +356,7 @@ export const portableServiceData: Record<string, { label: string; group: string;
     },
     "prod": {
       "seaweedfs-ship_placeholder": {
-        "image": "chrislusf/seaweedfs:4.46",
+        "image": SERVICE_IMAGES.seaweedfs,
         "entrypoint": [
           "/bin/sh",
           "-c"
@@ -495,7 +496,7 @@ export const portableServiceData: Record<string, { label: string; group: string;
     "group": "storage",
     "dev": {
       "rustfs-ship_placeholder": {
-        "image": "rustfs/rustfs:1.0.0",
+        "image": SERVICE_IMAGES.rustfs,
         "environment": {
           "RUSTFS_ACCESS_KEY": "${SHIP_PLACEHOLDER_AWS_ACCESS_KEY_ID:-ship}",
           "RUSTFS_SECRET_KEY": "${SHIP_PLACEHOLDER_AWS_SECRET_ACCESS_KEY:-shipsecret}"
@@ -519,7 +520,7 @@ export const portableServiceData: Record<string, { label: string; group: string;
     },
     "prod": {
       "rustfs-ship_placeholder": {
-        "image": "rustfs/rustfs:1.0.0",
+        "image": SERVICE_IMAGES.rustfs,
         "environment": {
           "RUSTFS_ACCESS_KEY": "${SHIP_PLACEHOLDER_AWS_ACCESS_KEY_ID:-ship}",
           "RUSTFS_SECRET_KEY": "${SHIP_PLACEHOLDER_AWS_SECRET_ACCESS_KEY:?set a real value in .env.production}"
@@ -557,7 +558,7 @@ export const portableServiceData: Record<string, { label: string; group: string;
     "group": "storage",
     "dev": {
       "silo-ship_placeholder": {
-        "image": "pgsty/silo:RELEASE.2026-09-16T00-00-00Z",
+        "image": SERVICE_IMAGES.silo,
         "command": [
           "server",
           "/data",
@@ -590,7 +591,7 @@ export const portableServiceData: Record<string, { label: string; group: string;
     },
     "prod": {
       "silo-ship_placeholder": {
-        "image": "pgsty/silo:RELEASE.2026-09-16T00-00-00Z",
+        "image": SERVICE_IMAGES.silo,
         "command": [
           "server",
           "/data",
@@ -637,7 +638,7 @@ export const portableServiceData: Record<string, { label: string; group: string;
     "group": "search",
     "dev": {
       "meilisearch-ship_placeholder": {
-        "image": "getmeili/meilisearch:v1.53",
+        "image": SERVICE_IMAGES.meilisearch,
         "environment": {
           "MEILI_MASTER_KEY": "${SHIP_PLACEHOLDER_MEILISEARCH_KEY:-shipsearchkey}",
           "MEILI_NO_ANALYTICS": "true"
@@ -649,7 +650,7 @@ export const portableServiceData: Record<string, { label: string; group: string;
     },
     "prod": {
       "meilisearch-ship_placeholder": {
-        "image": "getmeili/meilisearch:v1.53",
+        "image": SERVICE_IMAGES.meilisearch,
         "environment": {
           "MEILI_MASTER_KEY": "${SHIP_PLACEHOLDER_MEILISEARCH_KEY:?set a real value in .env.production}",
           "MEILI_NO_ANALYTICS": "true"
@@ -671,7 +672,7 @@ export const portableServiceData: Record<string, { label: string; group: string;
     "group": "search",
     "dev": {
       "elasticsearch-ship_placeholder": {
-        "image": "elasticsearch:9.5.5",
+        "image": SERVICE_IMAGES.elasticsearch,
         "environment": {
           "discovery.type": "single-node",
           "xpack.security.enabled": "true",
@@ -697,7 +698,7 @@ export const portableServiceData: Record<string, { label: string; group: string;
     },
     "prod": {
       "elasticsearch-ship_placeholder": {
-        "image": "elasticsearch:9.5.5",
+        "image": SERVICE_IMAGES.elasticsearch,
         "environment": {
           "discovery.type": "single-node",
           "xpack.security.enabled": "true",
@@ -733,7 +734,7 @@ export const portableServiceData: Record<string, { label: string; group: string;
     "group": "search",
     "dev": {
       "typesense-ship_placeholder": {
-        "image": "typesense/typesense:30.2",
+        "image": SERVICE_IMAGES.typesense,
         "environment": {
           "TYPESENSE_API_KEY": "${SHIP_PLACEHOLDER_TYPESENSE_API_KEY:-shipsearchkey}",
           "TYPESENSE_DATA_DIR": "/data"
@@ -756,7 +757,7 @@ export const portableServiceData: Record<string, { label: string; group: string;
     },
     "prod": {
       "typesense-ship_placeholder": {
-        "image": "typesense/typesense:30.2",
+        "image": SERVICE_IMAGES.typesense,
         "environment": {
           "TYPESENSE_API_KEY": "${SHIP_PLACEHOLDER_TYPESENSE_API_KEY:?set a real value in .env.production}",
           "TYPESENSE_DATA_DIR": "/data"
@@ -791,7 +792,7 @@ export const portableServiceData: Record<string, { label: string; group: string;
     "group": "mail",
     "dev": {
       "mailpit-ship_placeholder": {
-        "image": "axllent/mailpit:v1.31",
+        "image": SERVICE_IMAGES.mailpit,
         "ports": []
       }
     },
@@ -809,7 +810,7 @@ export const portableServiceData: Record<string, { label: string; group: string;
     "group": "testing",
     "dev": {
       "playwright": {
-        "image": "mcr.microsoft.com/playwright:v1.65.1-noble",
+        "image": SERVICE_IMAGES.playwright,
         "user": "pwuser",
         "working_dir": "/home/pwuser",
         "init": true,
@@ -850,7 +851,7 @@ export const portableServiceData: Record<string, { label: string; group: string;
     "group": "testing",
     "dev": {
       "cypress": {
-        "image": "cypress/included:16.3.0",
+        "image": SERVICE_IMAGES.cypress,
         "entrypoint": [
           "sleep",
           "infinity"
@@ -875,7 +876,7 @@ export const portableServiceData: Record<string, { label: string; group: string;
     "group": "broadcasting",
     "dev": {
       "centrifugo": {
-        "image": "centrifugo/centrifugo:v6.10",
+        "image": SERVICE_IMAGES.centrifugo,
         "environment": {
           "CENTRIFUGO_HTTP_API_KEY": "${CENTRIFUGO_API_KEY:-ship-centrifugo-api-key}",
           "CENTRIFUGO_CLIENT_TOKEN_HMAC_SECRET_KEY": "${CENTRIFUGO_TOKEN_SECRET:-ship-centrifugo-token-secret}",
@@ -905,7 +906,7 @@ export const portableServiceData: Record<string, { label: string; group: string;
     },
     "prod": {
       "centrifugo": {
-        "image": "centrifugo/centrifugo:v6.10",
+        "image": SERVICE_IMAGES.centrifugo,
         "environment": {
           "CENTRIFUGO_HTTP_API_KEY": "${CENTRIFUGO_API_KEY:?set a real value in .env.production}",
           "CENTRIFUGO_CLIENT_TOKEN_HMAC_SECRET_KEY": "${CENTRIFUGO_TOKEN_SECRET:?set a real value in .env.production}",
@@ -951,7 +952,7 @@ export const portableServiceData: Record<string, { label: string; group: string;
     "group": "broker",
     "dev": {
       "rabbitmq": {
-        "image": "rabbitmq:4.4-management-alpine",
+        "image": SERVICE_IMAGES.rabbitmq,
         "hostname": "rabbitmq",
         "environment": {
           "RABBITMQ_DEFAULT_USER": "${RABBITMQ_USER:-app}",
@@ -979,7 +980,7 @@ export const portableServiceData: Record<string, { label: string; group: string;
     },
     "prod": {
       "rabbitmq": {
-        "image": "rabbitmq:4.4-management-alpine",
+        "image": SERVICE_IMAGES.rabbitmq,
         "hostname": "rabbitmq",
         "environment": {
           "RABBITMQ_DEFAULT_USER": "${RABBITMQ_USER:-app}",

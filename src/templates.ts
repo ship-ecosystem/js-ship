@@ -1,6 +1,7 @@
 import { readFile } from "node:fs/promises";
 import { resolve } from "node:path";
 import { resolveWorkspace } from "./workspaces.js";
+import { SERVICE_IMAGES } from "./service-images.js";
 import { IMAGES, NODE_MINIMUMS } from "./images.js";
 import { createConfigSchema } from "./schema.js";
 import { adapterFor, builtinAdapters } from "./adapters.js";
@@ -13,7 +14,7 @@ const quote = (arg: string): string => `'${arg.replaceAll("'", "'\\''")}'`;
 const shell = (args: readonly string[]): string => args.map(quote).join(" ");
 export function templateSettings(config: ShipConfig, workspacePackages: readonly string[] = [], registry?: ExtensionRegistry): Record<string, unknown> {
   const plan = adapterFor(config, registry).packaging(config);
-  return { format: 9, packaging: JSON.stringify(plan), buildArguments: JSON.stringify(adapterFor(config, registry).buildArguments?.(config) ?? null), extensions: registry && (registry.extensions.length || config.extensions.length) ? registry.fingerprint : null, images: JSON.stringify(IMAGES), workspace: JSON.stringify(config.workspace), workspacePackages: JSON.stringify(workspacePackages), build: JSON.stringify({ publicEnv: Object.keys(config.build.publicEnv).sort(), secrets: config.build.secrets, npmrc: config.build.npmrc }), packageManager: config.packageManager, ...(config.packageManager === "yarn" ? { yarnNodeModules: 1 } : {}), ...(config.workspace && plan.kind === "node" && ["next", "nuxt"].includes(config.framework) ? { isolatedWorkspace: 1 } : {}), framework: config.framework, deployment: config.deployment,
+  return { format: 9, packaging: JSON.stringify(plan), buildArguments: JSON.stringify(adapterFor(config, registry).buildArguments?.(config) ?? null), extensions: registry && (registry.extensions.length || config.extensions.length) ? registry.fingerprint : null, images: JSON.stringify(IMAGES), serviceImages: JSON.stringify(SERVICE_IMAGES), workspace: JSON.stringify(config.workspace), workspacePackages: JSON.stringify(workspacePackages), build: JSON.stringify({ publicEnv: Object.keys(config.build.publicEnv).sort(), secrets: config.build.secrets, npmrc: config.build.npmrc }), packageManager: config.packageManager, ...(config.packageManager === "yarn" ? { yarnNodeModules: 1 } : {}), ...(config.workspace && plan.kind === "node" && ["next", "nuxt"].includes(config.framework) ? { isolatedWorkspace: 1 } : {}), framework: config.framework, deployment: config.deployment,
     kind: plan.kind, outputDirectory: plan.outputDirectory, routing: plan.routing, basePath: config.basePath,
     entrypoint: plan.entrypoint ?? null, runtimeFiles: JSON.stringify(config.runtimeFiles), angularProject: config.angularProject,
     ...(config.framework === "gatsby" ? { gatsbyStaticHeaders: 1 } : {}),
@@ -78,7 +79,7 @@ export async function renderTemplates(config: ShipConfig, workspacePackages: rea
     for (const name of ["Dockerfile", "entrypoint.sh", "bootstrap.sh", "bootstrap.js", "health.js", "app-user.js"]) files[`mongodb/${name}`] = (await readFile(new URL(`../templates/mongodb/${name}`, import.meta.url), "utf8")).replace("@MONGODB_IMAGE@", IMAGES.mongo);
   }
   if (Object.values(config.services).includes("garage") || config.additionalServices.some(s => s.service === "garage")) {
-    for (const name of ["Dockerfile", "garage.toml"]) files[`garage/${name}`] = await readFile(new URL(`../templates/garage/${name}`, import.meta.url), "utf8");
+    for (const name of ["Dockerfile", "garage.toml"]) files[`garage/${name}`] = (await readFile(new URL(`../templates/garage/${name}`, import.meta.url), "utf8")).replace("@GARAGE_IMAGE@", SERVICE_IMAGES.garage).replace("@GARAGE_CONFIG_IMAGE@", SERVICE_IMAGES.garageconfig);
   }
   if (plan.kind === "static") {
     const fallback = plan.routing === "spa" ? `${config.basePath}${plan.spaFallback ?? "index.html"}` : "=404";

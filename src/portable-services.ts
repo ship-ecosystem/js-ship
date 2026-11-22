@@ -1,3 +1,4 @@
+import { SERVICE_IMAGES } from "./service-images.js";
 import { resolve } from "node:path";
 import { portableServiceData } from "./portable-service-data.js";
 import type { ComposeService, ServiceContext, ServiceDefinition } from "./contracts.js";
@@ -35,8 +36,9 @@ function portable(key: string): ServiceDefinition {
     compose(c) {
       const source = c.environment === "production" ? Object.values(data.prod)[0] : template;
       const result = replace(source ?? template, c) as ComposeService;
+      if (key === "playwright") result.command = ["npx", "-y", `playwright@${SERVICE_IMAGES.playwright.match(/:v([0-9.]+)-/)![1]}`, "run-server", "--host", "0.0.0.0", "--port", "3000"];
       if (key === "garage") result.build = { context: resolve(c.projectRoot ?? ".", "ship/garage"), dockerfile: "Dockerfile", args: { GARAGE_RPC_PUBLIC_ADDR: `${c.serviceName}:3901` } };
-      if (key === "silo" && c.config?.siloImage === "distroless") result.image = `${result.image}-distroless`;
+      if (key === "silo" && c.config?.siloImage === "distroless") result.image = SERVICE_IMAGES.silodistroless;
       if (key === "centrifugo") {
         const cache = c.config?.services.cache;
         if (cache && ["redis", "valkey"].includes(cache)) {
@@ -85,7 +87,7 @@ function publicUrlSetting(c: ServiceContext): string {
 function appUrl(c: ServiceContext): string { return `http://${c.config?.serviceNames.app ?? "app"}:${c.config?.port ?? 3000}`; }
 const selenium: ServiceDefinition = {
   key: "selenium", label: "Selenium WebDriver (Chromium)", group: "testing", developmentOnly: true,
-  compose: () => ({ image: "selenium/standalone-chromium:4.53.0-20261120", shm_size: "2gb", init: true,
+  compose: () => ({ image: SERVICE_IMAGES.selenium, shm_size: "2gb", init: true,
     healthcheck: { test: ["CMD-SHELL", "/opt/bin/check-grid.sh --host 0.0.0.0 --port 4444"], interval: "5s", timeout: "10s", retries: 20, start_period: "20s" } }),
   appEnvironment: c => c.environment === "development" ? { SELENIUM_REMOTE_URL: `http://${c.serviceName}:4444`, WEBDRIVER_BASE_URL: appUrl(c) } : {},
 };
@@ -95,7 +97,7 @@ const bullBoard: ServiceDefinition = {
     const cache = c.config?.services.cache;
     if (!cache || !["redis", "valkey"].includes(cache)) throw new ConfigError(["Bull Board needs a Redis or Valkey cache. Configure services.cache first."]);
     const host = c.config?.serviceNames[cache] ?? cache;
-    return { image: "ghcr.io/felixmosh/bull-board:9.14.0", command: ["--redis", `redis://${host}:6379`], environment: {
+    return { image: SERVICE_IMAGES.bullboard, command: ["--redis", `redis://${host}:6379`], environment: {
       BULL_BOARD_HOST: "0.0.0.0", BULL_BOARD_READ_ONLY: c.setting("BULL_BOARD_READ_ONLY", c.environment === "production" ? "true" : "false"), BULL_BOARD_PREFIX: c.setting("BULL_BOARD_PREFIX", "bull"), BULL_BOARD_BASE_PATH: c.setting("BULL_BOARD_BASE_PATH", "/"), BULL_BOARD_USER: c.setting("BULL_BOARD_USER", "ship"), BULL_BOARD_PASSWORD: c.credential("BULL_BOARD_PASSWORD", "shipsecret"),
     }, ...(c.environment === "development" ? { ports: [`127.0.0.1:${c.setting("BULL_BOARD_PORT", "3001")}:3000`] } : {}), restart: "unless-stopped", depends_on: { [host]: { condition: "service_healthy" } } };
   },

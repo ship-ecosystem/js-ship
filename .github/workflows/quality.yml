@@ -47,9 +47,9 @@ jobs:
       - run: npm run check
       - run: npm run test:package
       - name: Require generated artifacts to be tracked
-        run: git ls-files --error-unmatch src/images.ts schema/ship.schema.json package.json package-lock.json
+        run: git ls-files --error-unmatch src/images.ts src/service-images.ts schema/ship.schema.json package.json package-lock.json
       - name: Check generated policy and schema artifacts
-        run: git diff --exit-code -- src/images.ts schema/ship.schema.json package.json package-lock.json
+        run: git diff --exit-code -- src/images.ts src/service-images.ts schema/ship.schema.json package.json package-lock.json
 
   dependency-audit:
     runs-on: ubuntu-latest

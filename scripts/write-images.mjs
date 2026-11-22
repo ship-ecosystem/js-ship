@@ -32,3 +32,14 @@ for (const file of ['package.json', 'package-lock.json']) {
   else data.packages[''].engines = engines;
   await writeChanged(file, JSON.stringify(data, null, 2) + '\n');
 }
+
+const serviceImages = {};
+for (const line of (await readFile(new URL('images/services/Dockerfile', root), 'utf8')).split(/\r?\n/)) {
+  if (!line.trim() || line.startsWith('#')) continue;
+  const match = /^FROM ([a-z0-9][a-z0-9/._-]*:[A-Za-z0-9._-]+(?:@sha256:[a-f0-9]{64})?) AS ([a-z0-9]+)$/.exec(line);
+  if (!match || Object.hasOwn(serviceImages, match[2])) throw new Error('Portable image catalog needs unique literal tagged FROM entries.');
+  serviceImages[match[2]] = match[1];
+}
+if (serviceImages.silodistroless !== serviceImages.silo + '-distroless') throw new Error('Review both Silo variants together.');
+if (!/:v[0-9.]+-/.test(serviceImages.playwright ?? '')) throw new Error('Playwright image must encode the matching server package version.');
+await writeChanged('src/service-images.ts', `// Generated from images/services/Dockerfile; review provider image changes before release.\nexport const SERVICE_IMAGES = ${JSON.stringify(serviceImages, null, 2)} as const;\n`);
