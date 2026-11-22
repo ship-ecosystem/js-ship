@@ -1,4 +1,5 @@
 #!/usr/bin/env node
+import { switchPackageManager } from "./switch-manager.js";
 import { resolve } from "node:path";
 import { parseArgs } from "node:util";
 import { interactiveInitOptions, shouldPromptInit, terminalInitPrompter } from "./interactive.js";
@@ -31,6 +32,7 @@ Usage: ship [--project-directory PATH] COMMAND [arguments]
        [--name NAME] [--node MAJOR] [--service GROUP=PROVIDER ...]
        [--process NAME=COMMAND ...] [--network NAME ...]
        [--deploy-command COMMAND ...] [--silo-image standard|distroless] [--no-host-user]
+  package-manager TOOL[@VERSION] [--yes] [--force]  Switch/update in the running app
   test [-- ARGUMENTS...]     Run the selected browser test tool (after ship up)
   up                         Build, start, wait for services and HTTP
   down [--volumes]            Stop; --volumes also deletes persisted data
@@ -109,6 +111,14 @@ async function main(argv: string[]): Promise<void> {
     console.log(opts.json ? JSON.stringify(report, null, 2) : formatDoctor(report));
     if (!report.ok) process.exitCode = 1;
     return;
+  }
+  if (command === "package-manager") {
+    const parsed = parseArgs({ args, options: { yes: { type: "boolean" }, force: { type: "boolean" } }, allowPositionals: true, strict: true });
+    if (parsed.positionals.length !== 1) throw new ConfigError(["Usage: ship package-manager npm|pnpm|yarn[@EXACT_VERSION] [--yes] [--force]"]);
+    const canPrompt = shouldPromptInit(!!process.stdin.isTTY, !!process.stdout.isTTY, false, process.env.CI);
+    await switchPackageManager(root, parsed.positionals[0]!, run, { yes: parsed.values.yes === true, force: parsed.values.force === true,
+      ...(canPrompt ? { confirm: async (message: string) => { const terminal = await terminalInitPrompter(); try { return await terminal.ask({ key: "switch", label: message, defaultValue: "no", choices: ["yes", "no"] }) === "yes"; } finally { terminal.close(); } } } : {}) });
+    console.log("Package manager updated. Review and commit the manifest/lockfile changes, then run ship up to rebuild the development image."); return;
   }
   const registry = await loadExtensions(root, (await readConfig(root)).extensions);
   const config = await loadProject(root, registry);

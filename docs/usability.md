@@ -161,3 +161,20 @@ or arrange those facilities yourself. For deployment, copy a portable release to
 the destination and use its generated loading/Compose instructions there; it
 contains private environment values and must stay private. See
 [Docker bind-mount constraints](https://docs.docker.com/engine/storage/bind-mounts/#considerations-and-constraints).
+
+## Switching package managers
+
+`ship package-manager pnpm@12.21.0` switches or updates the tool in the running
+development app. Use an exact stable version (`yarn@4.18.1`, for example). The
+command explains the foreign lockfiles it will replace and asks before proceeding;
+`--yes` supplies that consent in automation. It records the tool in package.json
+and ship.json, installs dependencies in the container, and regenerates Ship files.
+It does not execute npm/pnpm/Yarn on the host. Yarn gets an explicit node_modules
+linker configuration. Existing custom templates require backing up edits and an
+explicit `--force` before replacement.
+
+On failure, recorded manifests, lockfiles and generated Ship files are restored.
+Installed dependencies and the running container's globally installed tool may
+have changed; run `ship up` to rebuild and refresh using the restored configuration.
+Review and commit manifest/lockfile changes after a successful switch, then run
+`ship up`. Keep only the selected lockfile authoritative.
