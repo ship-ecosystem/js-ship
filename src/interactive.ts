@@ -91,6 +91,8 @@ async function collectInitOptions(root: string, supplied: InitOptions, ask: AskI
   if (options.database === undefined) options.database = options.services.database ?? "none";
   if (options.cache === undefined) options.cache = options.services.cache ?? "none";
   const additional = Array.isArray(raw.additionalServices) ? raw.additionalServices as import("./contracts.js").AdditionalService[] : [];
+  if (supplied.additionalServices !== undefined) options.additionalServices = [...supplied.additionalServices];
+  else {
   options.additionalServices = [];
   if (additional.length) {
     const keep = await ask({ key: "keepInstances", label: "Keep named instances", choices: additional.map(s => s.name), defaultValue: additional.map(s => s.name).join(","), multiple: true });
@@ -103,6 +105,7 @@ async function collectInitOptions(root: string, supplied: InitOptions, ask: AskI
     const service = await choose(`instanceService${i}`, "Instance provider", choices[0]!, choices);
     const name = await choose(`instanceName${i}`, "Instance name (environment prefix)", "", undefined, v => /^[a-z][a-z0-9_]*$/.test(v) && !options.additionalServices!.some(s => s.name === v));
     options.additionalServices.push({ group, service, name });
+  }
   }
   if (options.node === undefined) options.node = await choose("node", "Container Node.js major", text(raw.node, "24"), ["22", "24", "26"]);
   if (options.siloImage === undefined && (options.services.storage === "silo" || options.additionalServices.some(s => s.service === "silo"))) options.siloImage = await choose("siloImage", "Silo image variant", text(raw.siloImage, "standard"), ["standard", "distroless"]);

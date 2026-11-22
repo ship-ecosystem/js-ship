@@ -132,10 +132,11 @@ export function buildCompose(config: ShipConfig, root: string, environment: Envi
   }
   if (production) for (const [name, value] of Object.entries(config.processes)) {
     const definition = processDefinition(value);
-    const health = definition.healthcheck ?? (definition.http?.health ? `node -e ${JSON.stringify(`fetch('http://127.0.0.1:${definition.http.port}' + ${JSON.stringify(definition.http.health)}).then(r => { if (!r.ok) process.exit(1) }).catch(() => process.exit(1))`)}` : null);
+    const test = definition.healthcheck ? ["CMD-SHELL", definition.healthcheck.replaceAll("$", "$$$$")]
+      : definition.http?.health ? composeCommand(["CMD", "node", "-e", `fetch('http://127.0.0.1:${definition.http.port}' + ${JSON.stringify(definition.http.health)}).then(r => { if (!r.ok) process.exit(1) }).catch(() => process.exit(1))`]) : null;
     model.services[name] = { ...base, command: composeCommand(commandArgv(definition.command)),
-      ...(health ? { healthcheck: { test: ["CMD-SHELL", health.replaceAll("$", "$$$$")], interval: "10s", timeout: "5s", retries: 5, start_period: "10s" } } : {}),
-      ...(definition.http ? { expose: [String(definition.http.port)] } : {}) };
+      ...(test ? { healthcheck: { test, interval: "10s", timeout: "5s", retries: 5, start_period: "10s" } } : {}),
+      ...(definition.http ? { expose: [String(definition.http.port)], environment: { ...environmentVars, PORT: String(definition.http.port) } } : {}) };
   }
   return model;
 }

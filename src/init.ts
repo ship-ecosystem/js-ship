@@ -74,6 +74,7 @@ export async function planInitProject(root: string, options: InitOptions = {}, r
     if (value === "none") delete services[key];
     else if (value !== undefined) services[key] = value;
   }
+  for (const [group, value] of Object.entries(services)) if (value === "none") delete services[group];
   const switching = changedFramework ||
     (options.deployment !== undefined && options.deployment !== (existing.deployment ?? inferredDeployment)) ||
     (options.angularProject !== undefined && existing.angularProject !== undefined && options.angularProject !== existing.angularProject);

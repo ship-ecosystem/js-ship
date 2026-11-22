@@ -30,7 +30,7 @@ function portable(key: string): ServiceDefinition {
   };
   return {
     key, label: data.label, group: data.group, volumes: suffixes,
-    ...(["testing"].includes(data.group) ? { developmentOnly: true } : {}),
+    ...(Object.keys(data.prod).length === 0 ? { developmentOnly: true } : {}),
     ...(key === "cypress" ? { onDemand: true } : {}),
     compose(c) {
       const source = c.environment === "production" ? Object.values(data.prod)[0] : template;
@@ -44,6 +44,7 @@ function portable(key: string): ServiceDefinition {
           (result.environment as Record<string, string>).CENTRIFUGO_ENGINE_REDIS_ADDRESS = c.setting("CENTRIFUGO_REDIS_ADDRESS", `redis://${host}:6379`);
         }
       }
+      if (key === "mailpit" && !c.envPrefix) result.ports = [`127.0.0.1:${c.setting("MAILPIT_WEB_PORT", "8025")}:8025`];
       if (key === "cypress") {
         result.working_dir = c.config?.workspace ? `/e2e/${c.config.workspace.app}` : "/e2e";
         result.environment = { CYPRESS_BASE_URL: appUrl(c) };
@@ -64,12 +65,20 @@ function portable(key: string): ServiceDefinition {
       // Never hand database admin credentials to the app via its env_file.
       if (data.group === "database") env[`${c.envPrefix}DB_ROOT_PASSWORD`] = "";
       if (key === "playwright") env.PLAYWRIGHT_BASE_URL = appUrl(c);
-      if (key === "centrifugo" && c.environment === "production") delete env.VITE_CENTRIFUGO_URL;
+      if (key === "centrifugo") {
+        delete env.VITE_CENTRIFUGO_URL;
+        if (c.environment === "development") env[publicUrlSetting(c)] = `ws://localhost:${c.setting("CENTRIFUGO_PORT", "8001")}/connection/websocket`;
+      }
       return env;
     },
     ...(data.shell ? { databaseShell: () => [...data.shell!] } : {}),
-    ...(http.length ? { http: () => http } : {}),
+    ...(http.length ? { http: (c: ServiceContext) => http.map(entry => ({ ...entry, ...(key === "centrifugo" ? { urlSetting: publicUrlSetting(c) } : {}) })) } : {}),
   };
+}
+function publicUrlSetting(c: ServiceContext): string {
+  const framework = c.config?.framework;
+  const prefix = framework === "next" ? "NEXT_PUBLIC_" : framework === "nuxt" ? "NUXT_PUBLIC_" : framework === "gatsby" ? "GATSBY_" : ["astro", "sveltekit"].includes(framework ?? "") ? "PUBLIC_" : "VITE_";
+  return `${prefix}CENTRIFUGO_URL`;
 }
 function appUrl(c: ServiceContext): string { return `http://${c.config?.serviceNames.app ?? "app"}:${c.config?.port ?? 3000}`; }
 const selenium: ServiceDefinition = {

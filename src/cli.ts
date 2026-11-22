@@ -25,13 +25,15 @@ const HELP = `JavaScript Ship ${VERSION} — development milestone
 
 Usage: ship [--project-directory PATH] COMMAND [arguments]
 
-  init [--database postgres|mongodb|none] [--cache redis|none] [--force]
+  init [--database PROVIDER|none] [--cache PROVIDER|none] [--force]
        [--framework NAME] [--package-manager npm|pnpm|yarn]
        [--package-manager-version VERSION] [--no-interaction]
        [--deployment node|static] [--angular-project NAME]
        [--mongodb-mode standalone|replica-set] [--workspace PATH]
        [--name NAME] [--node MAJOR] [--service GROUP=PROVIDER ...]
-       [--process NAME=COMMAND ...] [--network NAME ...]
+       [--additional-service GROUP=PROVIDER:NAME ...] [--remove-instance NAME ...]
+       [--process NAME=COMMAND ...] [--process-definition NAME=JSON ...]
+       [--network NAME ... | --no-network]
        [--deploy-command COMMAND ...] [--silo-image standard|distroless] [--no-host-user]
   package-manager TOOL[@VERSION] [--yes] [--force]  Switch/update in the running app
   test [-- ARGUMENTS...]     Run the selected browser test tool (after ship up)
@@ -74,11 +76,14 @@ async function main(argv: string[]): Promise<void> {
   if (["--version", "-V"].includes(command)) { console.log(VERSION); return; }
   const known = new Set(["init", "up", "down", "exec", "shell", "logs", "db", "npm", "pnpm", "yarn", "config:test", "doctor", "build", "release", "test", "package-manager"]);
   if (!known.has(command)) throw new ConfigError([`Unknown command ${command}. Run ship --help.`]);
+  if (args.length === 1 && ["--help", "-h"].includes(args[0]!) && !["npm", "pnpm", "yarn"].includes(command)) {
+    console.log(HELP); return;
+  }
   if (command === "init") {
     const opts = options(args, { database: { type: "string" }, cache: { type: "string" }, framework: { type: "string" },
       "package-manager": { type: "string" }, "package-manager-version": { type: "string" }, deployment: { type: "string" },
       "angular-project": { type: "string" }, "mongodb-mode": { type: "string" }, workspace: { type: "string" }, name: { type: "string" }, node: { type: "string" }, "silo-image": { type: "string" }, "no-host-user": { type: "boolean" },
-      service: { type: "string", multiple: true }, process: { type: "string", multiple: true }, network: { type: "string", multiple: true }, "deploy-command": { type: "string", multiple: true }, force: { type: "boolean" }, "no-interaction": { type: "boolean" } });
+      service: { type: "string", multiple: true }, "additional-service": { type: "string", multiple: true }, "remove-instance": { type: "string", multiple: true }, "process-definition": { type: "string", multiple: true }, "no-network": { type: "boolean" }, process: { type: "string", multiple: true }, network: { type: "string", multiple: true }, "deploy-command": { type: "string", multiple: true }, force: { type: "boolean" }, "no-interaction": { type: "boolean" } });
     let initOptions: InitOptions = { ...(typeof opts.database === "string" ? { database: opts.database } : {}),
       ...(typeof opts.cache === "string" ? { cache: opts.cache } : {}), ...(typeof opts.framework === "string" ? { framework: opts.framework } : {}),
       ...(typeof opts["package-manager"] === "string" ? { packageManager: opts["package-manager"] } : {}),
@@ -95,7 +100,23 @@ async function main(argv: string[]): Promise<void> {
       return [entry.slice(0, index), entry.slice(index + 1)];
     }));
     if (opts.service) initOptions.services = { ...parseConfig(await exists(resolve(root, "ship.json")) ? await readJson(resolve(root, "ship.json")) : {}, root).services, ...pairs(opts.service, "--service") };
-    if (opts.process) initOptions.processes = { ...pairs(opts.process, "--process") };
+    const current = parseConfig(await exists(resolve(root, "ship.json")) ? await readJson(resolve(root, "ship.json")) : {}, root);
+    if (opts.process) initOptions.processes = { ...current.processes, ...pairs(opts.process, "--process") };
+    if (opts["process-definition"]) {
+      const definitions = pairs(opts["process-definition"], "--process-definition");
+      try { initOptions.processes = { ...current.processes, ...initOptions.processes, ...Object.fromEntries(Object.entries(definitions).map(([name, value]) => [name, JSON.parse(value) as import("./contracts.js").ProcessConfig])) }; }
+      catch { throw new ConfigError(["--process-definition requires NAME=JSON with a command/health/http definition."]); }
+    }
+    if (opts["additional-service"] || opts["remove-instance"]) {
+      const additions = (Array.isArray(opts["additional-service"]) ? opts["additional-service"] : []).flatMap(value => Object.entries(pairs([value], "--additional-service"))).map(([group, value]) => {
+        const [service, name, extra] = value.split(":");
+        if (!service || !name || extra) throw new ConfigError(["--additional-service requires GROUP=PROVIDER:NAME."]);
+        return { group, service, name };
+      });
+      const removed = Array.isArray(opts["remove-instance"]) ? opts["remove-instance"] : [];
+      initOptions.additionalServices = [...current.additionalServices.filter(s => !removed.includes(s.name)), ...additions];
+    }
+    if (opts["no-network"] === true) initOptions.externalNetwork = null;
     if (Array.isArray(opts.network)) initOptions.externalNetwork = opts.network;
     if (Array.isArray(opts["deploy-command"])) initOptions.deployCommands = opts["deploy-command"];
     if (shouldPromptInit(!!process.stdin.isTTY, !!process.stdout.isTTY, opts["no-interaction"] === true, process.env.CI)) {

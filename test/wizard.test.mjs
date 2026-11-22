@@ -46,3 +46,19 @@ test('wizard configures service groups, named instances, processes and networks 
  await initProject(root);
  assert.match(await readFile(join(root, '.env'), 'utf8'), /CUSTOM_SETTING="keep-me"/);
 });
+import { run } from '../dist/process.js';
+test('automation flags preserve repeated named instances and structured process definitions', { skip: process.env.SHIP_RESTRICTED_TEST === '1' }, async t => {
+ const root = await mkdtemp(join(tmpdir(), 'ship-init-flags-')); t.after(() => rm(root, { recursive: true, force: true }));
+ await cp(resolve('examples/node'), root, { recursive: true });
+ const cli = resolve('dist/cli.js');
+ await run([process.execPath, cli, '--project-directory', root, 'init', '--no-interaction', '--name', 'flag-app', '--service', 'mail=mailpit', '--additional-service', 'database=mysql:analytics', '--additional-service', 'database=postgres:reporting', '--network', 'proxy', '--process-definition', 'events={"command":["node","server.mjs"],"http":{"port":4000,"role":"websocket","health":"/"}}'], root, { capture: true });
+ let config = JSON.parse(await readFile(join(root, 'ship.json')));
+ assert.equal(config.additionalServices.length, 2);
+ assert.equal(config.processes.events.http.port, 4000);
+ await run([process.execPath, cli, '--project-directory', root, 'init', '--no-interaction', '--service', 'mail=none', '--remove-instance', 'analytics', '--no-network'], root, { capture: true });
+ config = JSON.parse(await readFile(join(root, 'ship.json')));
+ assert.equal(config.services.mail, undefined);
+ assert.deepEqual(config.additionalServices.map(s => s.name), ['reporting']);
+ assert.equal(config.externalNetwork, undefined);
+ assert.equal(config.processes.events.http.port, 4000);
+});

@@ -16,6 +16,7 @@ test('canonical config accepts JS options, HTTP processes, multiple networks and
  assert.deepEqual(compose.networks.external_2, { external: true, name: 'observability' });
  assert.deepEqual(compose.services.realtime.healthcheck.test, ['CMD-SHELL', 'node check.mjs']);
  assert.deepEqual(compose.services.realtime.expose, ['4000']);
+ assert.equal(compose.services.realtime.environment.PORT, '4000');
  assert.equal(buildCompose(config, '/project', 'development').services.realtime, undefined);
 });
 test('process and network validation refuses malformed definitions', () => {
