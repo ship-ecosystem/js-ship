@@ -1,13 +1,15 @@
 import { createHash } from "node:crypto";
 import { resolveWorkspace } from "./workspaces.js";
 import { resolve } from "node:path";
-import type { ExtensionRegistry, Command, ComposeModel, Environment, ServiceContext, ServiceDefinition, ShipConfig } from "./contracts.js";
+import type { ExtensionRegistry, Command, ComposeModel, Environment, ServiceContext, ServiceDefinition, ShipConfig, ProcessConfig, ProcessDefinition } from "./contracts.js";
 import { adapterFor } from "./adapters.js";
 import { IMAGES } from "./images.js";
 import { loadExtensions } from "./extensions.js";
 import { ConfigError } from "./errors.js";
 import { builtinServices, serviceContext } from "./services.js";
 
+export const processDefinition = (value: ProcessConfig): ProcessDefinition => typeof value === "string" || Array.isArray(value) ? { command: value as Command } : value as ProcessDefinition;
+export const externalNetworks = (config: ShipConfig): string[] => config.externalNetwork === null ? [] : typeof config.externalNetwork === "string" ? [config.externalNetwork] : [...config.externalNetwork];
 export function commandArgv(command: Command): string[] {
   return typeof command === "string" ? ["sh", "-c", command] : [...command];
 }
@@ -48,7 +50,9 @@ export function buildCompose(config: ShipConfig, root: string, environment: Envi
   if (new Set(names).size !== names.length) problems.push("App, service and process names collide after serviceNames renaming.");
   if (problems.length) throw new ConfigError(problems);
   const networks: Record<string, Record<string, unknown>> = { ship: {} };
-  if (config.externalNetwork) networks.external = { external: true, name: config.externalNetwork };
+  const external = externalNetworks(config);
+  const externalKeys = external.map((_, i) => i === 0 ? "external" : `external_${i + 1}`);
+  external.forEach((name, i) => { networks[externalKeys[i]!] = { external: true, name }; });
   const model: ComposeModel = { name: config.name + (production ? "-production" : ""), services: {}, volumes: {}, networks };
   const environmentVars: Record<string, string> = { NODE_ENV: production ? "production" : "development", HOST: "0.0.0.0", PORT: String(config.port) };
   if (config.framework === "next" && plan.kind === "node") environmentVars.HOSTNAME = "0.0.0.0";
@@ -89,7 +93,7 @@ export function buildCompose(config: ShipConfig, root: string, environment: Envi
     init: true,
     ...(!production || plan.kind === "node" ? { environment: environmentVars } : {}),
     ...(plan.kind === "node" ? { env_file: [{ path: production ? ".env.production" : ".env", required: false }] } : {}),
-    networks: config.externalNetwork ? ["ship", "external"] : ["ship"],
+    networks: ["ship", ...externalKeys],
     depends_on: depends,
     stop_grace_period: "60s",
     ...(production ? { restart: "unless-stopped" } : {}),
@@ -116,8 +120,12 @@ export function buildCompose(config: ShipConfig, root: string, environment: Envi
     model.volumes.node_modules = {};
     for (const path of workspacePackages) model.volumes[`workspace_${createHash("sha256").update(path).digest("hex").slice(0, 16)}`] = {};
   }
-  if (production) for (const [name, command] of Object.entries(config.processes)) {
-    model.services[name] = { ...base, command: composeCommand(commandArgv(command)) };
+  if (production) for (const [name, value] of Object.entries(config.processes)) {
+    const definition = processDefinition(value);
+    const health = definition.healthcheck ?? (definition.http?.health ? `node -e ${JSON.stringify(`fetch('http://127.0.0.1:${definition.http.port}' + ${JSON.stringify(definition.http.health)}).then(r => { if (!r.ok) process.exit(1) }).catch(() => process.exit(1))`)}` : null);
+    model.services[name] = { ...base, command: composeCommand(commandArgv(definition.command)),
+      ...(health ? { healthcheck: { test: ["CMD-SHELL", health.replaceAll("$", "$$$$")], interval: "10s", timeout: "5s", retries: 5, start_period: "10s" } } : {}),
+      ...(definition.http ? { expose: [String(definition.http.port)] } : {}) };
   }
   return model;
 }

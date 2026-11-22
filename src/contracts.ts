@@ -1,5 +1,8 @@
 export type Environment = "development" | "production";
 export type Command = string | readonly string[];
+export interface HttpEndpoint { port: number; role: string; health?: string | null; urlSetting?: string | null }
+export interface ProcessDefinition { command: Command; healthcheck?: string; http?: HttpEndpoint }
+export type ProcessConfig = Command | ProcessDefinition;
 export type Variables = Record<string, string>;
 export type ComposeService = Record<string, unknown>;
 export interface ComposeModel {
@@ -44,9 +47,9 @@ export interface ShipConfig {
   services: Record<string, string>;
   additionalServices: AdditionalService[];
   serviceNames: Record<string, string>;
-  externalNetwork: string | null;
+  externalNetwork: string | string[] | null;
   publishPorts: boolean;
-  processes: Record<string, Command>;
+  processes: Record<string, ProcessConfig>;
   deployCommands: Command[];
 }
 

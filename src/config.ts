@@ -1,7 +1,7 @@
 import { readFile, access } from "node:fs/promises";
 import { basename, resolve } from "node:path";
 import { ConfigError } from "./errors.js";
-import type { Command, ProjectManifest, ShipConfig } from "./contracts.js";
+import type { Command, ProcessConfig, ProjectManifest, ShipConfig } from "./contracts.js";
 import { NODE_MINIMUMS } from "./images.js";
 import { DEFAULT_NPM_VERSION, EXACT_VERSION } from "./versions.js";
 
@@ -153,10 +153,22 @@ export function parseConfig(data: unknown, root: string): ShipConfig {
   if (new Set(additionalServices.map(s => s.name)).size !== additionalServices.length) problems.push("additionalServices names must be unique.");
   const command = (value: unknown): value is Command => (typeof value === "string" && !!value.trim() && !value.includes("\0")) ||
     (Array.isArray(value) && value.length > 0 && value.every(v => typeof v === "string" && !v.includes("\0")) && !!value[0]);
-  const processes: Record<string, Command> = {};
+  const processes: Record<string, ProcessConfig> = {};
+  const processDefinition = (value: unknown): value is ProcessConfig => {
+    if (command(value)) return true;
+    if (!isObject(value) || !command(value.command) || Object.keys(value).some(k => !["command", "healthcheck", "http"].includes(k))) return false;
+    if (value.healthcheck !== undefined && (typeof value.healthcheck !== "string" || !value.healthcheck.trim() || value.healthcheck.includes("\0"))) return false;
+    if (value.http !== undefined) {
+      const h = value.http;
+      if (!isObject(h) || Object.keys(h).some(k => !["port", "role", "health", "urlSetting"].includes(k)) || !Number.isInteger(h.port) || Number(h.port) < 1 || Number(h.port) > 65535 || typeof h.role !== "string" || !h.role.trim()) return false;
+      if (h.health != null && (typeof h.health !== "string" || !h.health.startsWith("/") || /[\r\n\0]/.test(h.health))) return false;
+      if (h.urlSetting != null && (typeof h.urlSetting !== "string" || !/^[A-Za-z_][A-Za-z0-9_]*$/.test(h.urlSetting))) return false;
+    }
+    return true;
+  };
   if (data.processes !== undefined && !isObject(data.processes)) problems.push("processes must be an object.");
   else for (const [key, value] of Object.entries(data.processes ?? {})) {
-    if (!NAME.test(key) || RESERVED.has(key) || !command(value)) problems.push(`Invalid process ${key}: use a non-reserved name and a shell string or argument array.`);
+    if (!NAME.test(key) || RESERVED.has(key) || !processDefinition(value)) problems.push(`Invalid process ${key}: use a non-reserved name and a command or { command, healthcheck?, http? } definition.`);
     else processes[key] = value;
   }
   const deployCommands: Command[] = [];
@@ -166,14 +178,15 @@ export function parseConfig(data: unknown, root: string): ShipConfig {
     else deployCommands.push(value);
   }
   const externalNetwork = data.externalNetwork ?? null;
-  if (externalNetwork !== null && (typeof externalNetwork !== "string" || !NETWORK_NAME.test(externalNetwork))) problems.push("externalNetwork must be a Docker network name.");
+  if (externalNetwork !== null && !(typeof externalNetwork === "string" && NETWORK_NAME.test(externalNetwork)) &&
+    !(Array.isArray(externalNetwork) && externalNetwork.length > 0 && new Set(externalNetwork).size === externalNetwork.length && externalNetwork.every(n => typeof n === "string" && NETWORK_NAME.test(n)))) problems.push("externalNetwork must be a Docker network name or a nonempty list of unique names.");
   if (data.publishPorts !== undefined && typeof data.publishPorts !== "boolean") problems.push("publishPorts must be boolean.");
   if (problems.length) throw new ConfigError(problems);
   return { extensions, workspace, build, framework, deployment: deployment as ShipConfig["deployment"], serverEntry: serverEntry as string | null,
     runtimeFiles: runtimeFiles as string[], angularProject: angularProject as string | null, mongodbMode: mongodbMode as ShipConfig["mongodbMode"],
     node, name, packageManager: packageManager as ShipConfig["packageManager"], packageManagerVersion,
     scripts, outputDirectory: outputDirectory as string | null, staticRouting: staticRouting as ShipConfig["staticRouting"], basePath: basePath as string, port: port as number, services, additionalServices,
-    serviceNames, externalNetwork: externalNetwork as string | null, publishPorts: data.publishPorts === true, processes, deployCommands };
+    serviceNames, externalNetwork: externalNetwork as string | string[] | null, publishPorts: data.publishPorts === true, processes, deployCommands };
 }
 
 export async function readConfig(root: string): Promise<ShipConfig> {
