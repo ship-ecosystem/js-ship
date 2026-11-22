@@ -10,7 +10,7 @@ import { defaultDeployment } from "./framework-profiles.js";
 import { applicationRoot, containedDirectory, workspacePackages } from "./workspaces.js";
 import { planInitProject, type InitOptions } from "./init.js";
 import { NAME, NETWORK_NAME, RESERVED } from "./config-rules.js";
-import { scriptCommand } from "./package-managers.js";
+import { scriptProcessSuggestions } from "./adapter-capabilities.js";
 import { runWizard } from "./wizard.js";
 import { ConfigError, ProcessError } from "./errors.js";
 
@@ -117,12 +117,10 @@ async function collectInitOptions(root: string, supplied: InitOptions, ask: AskI
       const retained = await ask({ key: "keepProcesses", label: "Keep production processes", defaultValue: Object.keys(options.processes).join(","), choices: Object.keys(options.processes), multiple: true });
       options.processes = Object.fromEntries(Object.entries(options.processes).filter(([name]) => retained.split(",").includes(name)));
     }
-    const suggestions = Object.keys(manifest.scripts ?? {}).filter(name => /^(?:worker|queue(?::work)?|schedule(?:r)?|realtime|socket(?:s)?|ws)(?::[a-z0-9_-]+)?$/.test(name));
-    for (const script of suggestions) {
-      const name = script.replaceAll(":", "-");
-      if (!Object.hasOwn(options.processes, name) && await choose(`process-${name}`, `Add production process for ${script}?`, "no", ["yes", "no"]) === "yes") {
-        options.processes = { ...options.processes, [name]: scriptCommand(parseConfig({ packageManager: options.packageManager, packageManagerVersion: options.packageManagerVersion }, root), script) };
-      }
+    const suggestionConfig = parseConfig({ ...raw, framework: options.framework, deployment: options.deployment, packageManager: options.packageManager, packageManagerVersion: options.packageManagerVersion }, root);
+    const suggestions = adapter.suggestProcesses?.(suggestionConfig, manifest) ?? scriptProcessSuggestions(suggestionConfig, manifest);
+    for (const [name, suggestion] of Object.entries(suggestions)) {
+      if (!Object.hasOwn(options.processes, name) && await choose(`process-${name}`, `Add production process: ${suggestion.label}?`, "no", ["yes", "no"]) === "yes") options.processes = { ...options.processes, [name]: suggestion.definition };
     }
     while (await choose(`addProcess${Object.keys(options.processes).length}`, "Add a custom production process?", "no", ["yes", "no"]) === "yes") {
       const n = Object.keys(options.processes).length;

@@ -1,3 +1,4 @@
+import type { ProcessSuggestion, ReleaseDescription } from "./adapter-capabilities.js";
 export type Environment = "development" | "production";
 export type Command = string | readonly string[];
 export interface HttpEndpoint { port: number; role: string; health?: string | null; urlSetting?: string | null }
@@ -100,6 +101,8 @@ export interface FrameworkAdapter {
   packaging(config: ShipConfig): PackagingPlan;
   developmentCommand(config: ShipConfig): readonly string[];
   productionCommand(config: ShipConfig): readonly string[];
+  suggestProcesses?(config: ShipConfig, manifest: ProjectManifest): Readonly<Record<string, ProcessSuggestion>>;
+  describeRelease?(config: ShipConfig, projectRoot: string): ReleaseDescription;
   buildArguments?(config: ShipConfig): readonly string[];
 }
 

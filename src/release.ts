@@ -43,8 +43,11 @@ export function deployScript(config: ShipConfig, model: ComposeModel): string {
 
 export async function buildProduction(root: string, config: ShipConfig, runner: Runner, tag = "local", options: { noCache?: boolean; registry?: ExtensionRegistry } = {}): Promise<ComposeModel> {
   validateTag(tag);
-  const { prefix, model } = await composePrefix(root, config, "production", tag, { ...(options.registry ? { registry: options.registry } : {}) });
-  const problems = [...await productionProblems(model, root), ...await buildContextProblems(root), ...await buildSecretProblems(config, root)];
+  const registry = options.registry ?? await loadExtensions(root, config.extensions);
+  const { prefix, model } = await composePrefix(root, config, "production", tag, { registry });
+  const release = adapterFor(config, registry).describeRelease?.(config, root);
+  const settings = await exists(resolve(root, ".env.production")) ? parseEnv(await readFile(resolve(root, ".env.production"), "utf8")) : {};
+  const problems = [...(release?.requiredEnv ?? []).filter(key => !settings[key]?.trim()).map(key => `${key} is required in .env.production by the framework adapter.`), ...await productionProblems(model, root), ...await buildContextProblems(root), ...await buildSecretProblems(config, root)];
   if (problems.length) throw new ConfigError(problems);
   // Workers share the app image, and named MongoDB instances share one infrastructure image.
   const owners = new Map<string, string>();
@@ -150,9 +153,10 @@ export async function assembleRelease(root: string, config: ShipConfig, tag: str
     if (!platform) throw new ConfigError(["Release has no project-built image."]);
     const app = config.serviceNames.app ?? "app";
     const plan = adapterFor(config, registry).packaging(config);
-    const http = [{ service: app, port: plan.port, role: "site", health: null as string | null, urlSetting: null as string | null },
+    const description = adapterFor(config, registry).describeRelease?.(config, root);
+    const http = [{ service: app, port: plan.port, role: "site", health: description?.health ?? null, urlSetting: description?.urlSetting ?? null },
       ...Object.entries(config.processes).flatMap(([service, value]) => { const h = processDefinition(value).http; return h ? [{ service, port: h.port, role: h.role, health: h.health ?? null, urlSetting: h.urlSetting ?? null }] : []; }),
-      ...selections(config, "production", root, registry).flatMap(({ definition, context }) => definition.http?.(context).map(h => ({ service: context.serviceName, port: h.port, role: h.role, health: h.health ?? null, urlSetting: h.urlSetting ?? null })) ?? [])];
+      ...selections(config, "production", root, registry).filter(({ context }) => Object.hasOwn(compose.services, context.serviceName)).flatMap(({ definition, context }) => definition.http?.(context).map(h => ({ service: context.serviceName, port: h.port, role: h.role, health: h.health ?? null, urlSetting: h.urlSetting ?? null })) ?? [])];
     const interpolation = interpolationMetadata(compose);
     if (interpolation.required.some(key => !keys.includes(key))) throw new ConfigError(["Production settings must declare every required Compose variable."]);
     const deploy = deploymentPlan(config, compose);
@@ -165,8 +169,8 @@ export async function assembleRelease(root: string, config: ShipConfig, tag: str
         healthcheck: !!service.healthcheck && !(service.healthcheck as { disable?: boolean }).disable && (service.healthcheck as { test?: string[] }).test?.[0] !== "NONE", volumes: namedVolumes(service, compose),
       }])),
       framework: config.framework === "generic" ? null : config.framework, runtime: plan.kind === "static" ? "nginx" : "node",
-      env: { file: includeEnv ? ".env" : null, keys, ...interpolation }, deploy, requires: { networks: sorted(externalNetworks(config)) },
-      console: { service: app, user: plan.kind === "static" ? "101" : "node", shell: ["sh"], commands: plan.kind === "static" ? {} : { node: ["node"], [config.packageManager]: [config.packageManager] } },
+      env: { file: includeEnv ? ".env" : null, keys, referenced: interpolation.referenced, required: sorted([...interpolation.required, ...(description?.requiredEnv ?? [])]) }, deploy, requires: { networks: sorted(externalNetworks(config)) },
+      console: { service: app, user: plan.kind === "static" ? "101" : "node", shell: ["sh"], commands: plan.kind === "static" ? {} : { node: ["node"], [config.packageManager]: [config.packageManager], ...(description?.console ?? {}) } },
       extensions: { definitions: registry.extensions, fingerprint: registry.fingerprint },
     };
     await writeFile(join(stage, "docker-compose.yml"), render(compose));

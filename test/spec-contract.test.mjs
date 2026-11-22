@@ -91,3 +91,20 @@ test('explicit force replaces a release only after the replacement is complete',
  await assembleRelease(root, config, 'replace', runner, undefined, { force: true });
  assert.deepEqual(check(first), []);
 });
+import { createRegistry } from '../dist/extensions.js';
+import { genericAdapter } from '../dist/adapters.js';
+test('adapter capabilities describe real release endpoints, required setting names and console prefixes', async t => {
+ const root = await mkdtemp(join(tmpdir(), 'ship-adapter-contract-')); t.after(() => rm(root, { recursive: true, force: true }));
+ await cp(resolve('examples/node'), root, { recursive: true });
+ const registry = createRegistry([{ apiVersion: 1, name: 'health-adapter', version: '1.0.0', adapters: [{ ...genericAdapter, key: 'health-app', label: 'Health app', describeRelease: () => ({ health: '/ready', urlSetting: 'APP_URL', requiredEnv: ['APP_TOKEN'], console: { migrate: ['node', 'migrate.mjs'] } }) }] }]);
+ const config = await initProject(root, { framework: 'health-app' }, registry);
+ await assert.rejects(assembleRelease(root, config, 'missing', runner, registry), /APP_TOKEN is required/);
+ await writeFile(join(root, '.env.production'), 'APP_TOKEN=private-app-value\n');
+ const output = await assembleRelease(root, config, 'health', runner, registry);
+ const release = JSON.parse(await readFile(join(output, 'release.json')));
+ assert.deepEqual(check(output), []);
+ assert.equal(release.http[0].health, '/ready');
+ assert.deepEqual(release.env.required, ['APP_TOKEN']);
+ assert.deepEqual(release.console.commands.migrate, ['node', 'migrate.mjs']);
+ assert.doesNotMatch(JSON.stringify(release), /private-app-value/);
+});

@@ -23,11 +23,12 @@ function hooks(value: Record<string, unknown>, names: readonly string[]): Record
 function adapter(value: unknown): FrameworkAdapter {
   if (!object(value) || typeof value.key !== "string" || !NAME.test(value.key) || typeof value.label !== "string" || !value.label.trim()) fail("adapters need a valid key and label.");
   for (const key of ["defaults", "validate", "packaging", "developmentCommand", "productionCommand"]) if (typeof value[key] !== "function") fail(`adapter ${value.key} needs ${key}().`);
+  for (const name of ["suggestProcesses", "describeRelease"]) if (value[name] !== undefined && typeof value[name] !== "function") fail(`adapter ${value.key} ${name} must be a function.`);
   if (value.buildArguments !== undefined && typeof value.buildArguments !== "function") fail(`adapter ${value.key} buildArguments must be a function.`);
   if (value.defaultDeployment !== undefined && value.defaultDeployment !== "node" && value.defaultDeployment !== "static") fail(`adapter ${value.key} has an invalid defaultDeployment.`);
   const definition = Object.freeze({ ...value, key: value.key, label: value.label,
     ...(value.defaultDeployment !== undefined ? { defaultDeployment: value.defaultDeployment } : {}),
-    ...hooks(value, ["defaults", "validate", "packaging", "developmentCommand", "productionCommand", "buildArguments"]) }) as unknown as FrameworkAdapter;
+    ...hooks(value, ["defaults", "validate", "packaging", "developmentCommand", "productionCommand", "buildArguments", "suggestProcesses", "describeRelease"]) }) as unknown as FrameworkAdapter;
   return Object.freeze<FrameworkAdapter>({ ...definition,
     defaults(manifest, deployment) {
       const result = definition.defaults(manifest, deployment);
@@ -52,17 +53,39 @@ function adapter(value: unknown): FrameworkAdapter {
     },
     developmentCommand: config => strings(definition.developmentCommand(config), `${definition.key}.developmentCommand()`, true),
     productionCommand: config => strings(definition.productionCommand(config), `${definition.key}.productionCommand()`, true),
+    ...(definition.suggestProcesses ? { suggestProcesses(config: Parameters<FrameworkAdapter["packaging"]>[0], manifest: Parameters<FrameworkAdapter["defaults"]>[0]) {
+      const result = definition.suggestProcesses!(config, manifest);
+      if (!object(result)) fail(`adapter ${definition.key} returned invalid process suggestions.`);
+      for (const [name, suggestion] of Object.entries(result)) {
+        if (!object(suggestion) || typeof suggestion.label !== "string" || !suggestion.label.trim()) fail(`adapter ${definition.key} returned an invalid suggestion.`);
+        parseConfig({ processes: { [name]: suggestion.definition } }, "/extension");
+      }
+      return result;
+    } } : {}),
+    ...(definition.describeRelease ? { describeRelease(config: Parameters<FrameworkAdapter["packaging"]>[0], root: string) {
+      const result = definition.describeRelease!(config, root);
+      if (!object(result) || Object.keys(result).some(k => !["health", "urlSetting", "requiredEnv", "console"].includes(k))) fail(`adapter ${definition.key} returned invalid release metadata.`);
+      parseConfig({ processes: { endpoint: { command: ["node"], http: { port: 3000, role: "site", health: result.health ?? null, urlSetting: result.urlSetting ?? null } } } }, "/extension");
+      if (result.requiredEnv !== undefined && (!Array.isArray(result.requiredEnv) || result.requiredEnv.some(v => typeof v !== "string" || !/^[A-Za-z_][A-Za-z0-9_]*$/.test(v)))) fail(`adapter ${definition.key} requiredEnv must contain setting names.`);
+      if (result.console !== undefined) {
+        if (!object(result.console)) fail(`adapter ${definition.key} console must map names to argv prefixes.`);
+        for (const [name, argv] of Object.entries(result.console)) { if (!/^[a-z][a-z0-9:_-]*$/.test(name)) fail("Invalid console command name."); strings(argv, "console command", true); }
+      }
+      return result;
+    } } : {}),
     ...(definition.buildArguments ? { buildArguments: (config: Parameters<FrameworkAdapter["packaging"]>[0]) => strings(definition.buildArguments!(config), `${definition.key}.buildArguments()`) } : {}),
   });
 }
 function service(value: unknown): ServiceDefinition {
   if (!object(value) || typeof value.key !== "string" || !NAME.test(value.key) || typeof value.group !== "string" || !NAME.test(value.group) || typeof value.label !== "string" || !value.label.trim()) fail("services need valid key/group names and a label.");
   for (const key of ["compose", "appEnvironment"]) if (typeof value[key] !== "function") fail(`service ${value.key} needs ${key}().`);
+  for (const flag of ["developmentOnly", "onDemand"]) if (value[flag] !== undefined && typeof value[flag] !== "boolean") fail(`service ${value.key} ${flag} must be boolean.`);
+  if (value.http !== undefined && typeof value.http !== "function") fail(`service ${value.key} http must be a function.`);
   if (value.databaseShell !== undefined && typeof value.databaseShell !== "function") fail(`service ${value.key} databaseShell must be a function.`);
   const volumes = value.volumes ?? [];
   if (!Array.isArray(volumes) || volumes.some(name => typeof name !== "string" || !NAME.test(name)) || new Set(volumes).size !== volumes.length) fail(`service ${value.key} volumes must list unique suffix names.`);
   const definition = Object.freeze({ ...value, key: value.key, label: value.label, group: value.group, volumes: Object.freeze([...volumes]),
-    ...hooks(value, ["compose", "appEnvironment", "databaseShell"]) }) as unknown as ServiceDefinition;
+    ...hooks(value, ["compose", "appEnvironment", "databaseShell", "http"]) }) as unknown as ServiceDefinition;
   return Object.freeze<ServiceDefinition>({ ...definition,
     compose(context) {
       const result = definition.compose(context);
@@ -78,6 +101,12 @@ function service(value: unknown): ServiceDefinition {
       if (!object(result) || Object.entries(result).some(([key, value]) => !/^[A-Za-z_][A-Za-z0-9_]*(?![\s\S])/.test(key) || typeof value !== "string" || value.includes("\0"))) fail(`service ${definition.key} appEnvironment must map environment names to strings.`);
       return result;
     },
+    ...(definition.http ? { http(context: Parameters<ServiceDefinition["compose"]>[0]) {
+      const endpoints = definition.http!(context);
+      if (!Array.isArray(endpoints)) fail(`service ${definition.key} http must return endpoint definitions.`);
+      for (const endpoint of endpoints) parseConfig({ processes: { endpoint: { command: ["node"], http: endpoint } } }, "/extension");
+      return endpoints;
+    } } : {}),
     ...(definition.databaseShell ? { databaseShell: (context: Parameters<ServiceDefinition["compose"]>[0]) => strings(definition.databaseShell!(context), `${definition.key}.databaseShell()`, true) } : {}),
   });
 }

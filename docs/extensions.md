@@ -203,3 +203,29 @@ a sandbox; transitive imports follow Node rules. Load only trusted extensions an
 review project configuration before running project commands. `--help` and
 `--version` do not load project extensions. API v1 supplies planning/data hooks,
 not lifecycle hooks for host command execution.
+
+## Optional ecosystem capabilities
+
+API v1 remains compatible. Services can declare `developmentOnly: true` (omitted
+from production), `onDemand: true` (the `ship-testing` Compose profile), and
+`http(context)` returning `{ port, role, health?, urlSetting? }` entries for that
+service. HTTP services join every configured external network and are described
+in release metadata. Keep `resourceName`/`context.volume()` identities independent
+of `serviceName`; use context configuration to resolve other selected providers.
+
+Framework adapters can implement:
+
+- `suggestProcesses(config, manifest)`: a name-to-`{ label, definition }` map. The
+  definition is a command or `{ command, healthcheck?, http? }`. The wizard offers
+  these without installing libraries or inventing handlers. Without the hook,
+  Ship suggests recognizable existing worker/realtime package scripts.
+- `describeRelease(config, projectRoot)`: `{ health?, urlSetting?, requiredEnv?,
+  console? }`. Read actual project configuration when appropriate. `health` is a
+  known 2xx path or null; `urlSetting` is a variable name, never its value;
+  `requiredEnv` names are validated against production settings. `console` maps
+  command names to argv prefixes available in the production image.
+
+These synchronous hooks execute trusted project extension code. Hook results are
+validated. Do not advertise commands that traced/isolated images do not contain,
+or required runtime secrets for static frontend assets. The release writer and
+wizard consume these capabilities through the same registry as Compose planning.

@@ -7,3 +7,6 @@ export { builtinAdapters, detectFramework } from "./adapters.js";
 export { packageManagers, scriptCommand } from "./package-managers.js";
 export { shipConfigSchema, createConfigSchema } from "./schema.js";
 export { createRegistry, loadExtensions } from "./extensions.js";
+
+export type { ProcessSuggestion, ReleaseDescription } from "./adapter-capabilities.js";
+export { scriptProcessSuggestions } from "./adapter-capabilities.js";
