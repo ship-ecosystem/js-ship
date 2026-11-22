@@ -10,7 +10,7 @@ import { adapterFor } from "./adapters.js";
 
 import { loadExtensions } from "./extensions.js";
 import { ConfigError } from "./errors.js";
-import { adapterProductionProblems, parseEnv, productionProblems } from "./production.js";
+import { adapterProductionProblems, parseEnv, productionProblems, productionWarnings } from "./production.js";
 import { buildContextProblems, buildSecretProblems } from "./build-environment.js";
 import { composePrefix } from "./project.js";
 
@@ -47,6 +47,7 @@ export async function buildProduction(root: string, config: ShipConfig, runner: 
   const { prefix, model } = await composePrefix(root, config, "production", tag, { registry });
   const problems = [...await adapterProductionProblems(config, root, registry), ...await productionProblems(model, root), ...await buildContextProblems(root), ...await buildSecretProblems(config, root)];
   if (problems.length) throw new ConfigError(problems);
+  for (const warning of await productionWarnings(config, root)) console.warn(`ship: ${warning}`);
   // Workers share the app image, and named MongoDB instances share one infrastructure image.
   const owners = new Map<string, string>();
   for (const [name, service] of Object.entries(model.services)) if (service.build && typeof service.image === "string" && !owners.has(service.image)) owners.set(service.image, name);

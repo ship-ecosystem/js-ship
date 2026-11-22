@@ -35,7 +35,15 @@ jobs:
           node-version: ${{ matrix.node }}
           check-latest: true
           cache: npm
+      # Prepared only: workflows remain server-disabled until release authorization.
+      - name: Read the shared ecosystem contract
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          repository: ship-ecosystem/spec
+          path: ship-spec
+          persist-credentials: false
       - run: npm ci
+      - run: npm run check:spec -- ./ship-spec
       - run: npm run check
       - run: npm run test:package
       - name: Require generated artifacts to be tracked

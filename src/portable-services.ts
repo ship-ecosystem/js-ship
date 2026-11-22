@@ -96,7 +96,7 @@ const bullBoard: ServiceDefinition = {
     if (!cache || !["redis", "valkey"].includes(cache)) throw new ConfigError(["Bull Board needs a Redis or Valkey cache. Configure services.cache first."]);
     const host = c.config?.serviceNames[cache] ?? cache;
     return { image: "ghcr.io/felixmosh/bull-board:9.14.0", command: ["--redis", `redis://${host}:6379`], environment: {
-      BULL_BOARD_HOST: "0.0.0.0", BULL_BOARD_USER: c.setting("BULL_BOARD_USER", "ship"), BULL_BOARD_PASSWORD: c.credential("BULL_BOARD_PASSWORD", "shipsecret"),
+      BULL_BOARD_HOST: "0.0.0.0", BULL_BOARD_READ_ONLY: c.setting("BULL_BOARD_READ_ONLY", c.environment === "production" ? "true" : "false"), BULL_BOARD_PREFIX: c.setting("BULL_BOARD_PREFIX", "bull"), BULL_BOARD_BASE_PATH: c.setting("BULL_BOARD_BASE_PATH", "/"), BULL_BOARD_USER: c.setting("BULL_BOARD_USER", "ship"), BULL_BOARD_PASSWORD: c.credential("BULL_BOARD_PASSWORD", "shipsecret"),
     }, ...(c.environment === "development" ? { ports: [`127.0.0.1:${c.setting("BULL_BOARD_PORT", "3001")}:3000`] } : {}), restart: "unless-stopped", depends_on: { [host]: { condition: "service_healthy" } } };
   },
   appEnvironment: () => ({}),

@@ -42,3 +42,12 @@ export async function adapterProductionProblems(config: ShipConfig, root: string
   const settings = await exists(path) ? parseEnv(await readFile(path, "utf8")) : {};
   return required.filter(key => !settings[key]?.trim() || /^(?:CHANGE_ME|changeme)$/i.test(settings[key]!)).map(key => `${key} is required in .env.production by the framework adapter.`);
 }
+
+export async function productionWarnings(config: ShipConfig, root: string): Promise<string[]> {
+  const prefixes = [...(config.services.database === "sqlserver" ? [""] : []), ...config.additionalServices.filter(s => s.service === "sqlserver").map(s => `${s.name.toUpperCase()}_`)];
+  if (!prefixes.length) return [];
+  const path = resolve(root, ".env.production");
+  const values = await exists(path) ? parseEnv(await readFile(path, "utf8")) : {};
+  return prefixes.flatMap(prefix => !values[`${prefix}MSSQL_PID`]?.trim() || values[`${prefix}MSSQL_PID`]!.trim().toLowerCase() === "developer"
+    ? [`SQL Server ${prefix || "default"} uses the Developer edition (development/testing only). Set ${prefix}MSSQL_PID to your licensed edition or product key before serving production users.`] : []);
+}

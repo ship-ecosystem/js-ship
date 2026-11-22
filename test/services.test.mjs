@@ -41,3 +41,14 @@ test('browser endpoints follow renamed app hosts and ports without frontend data
  assert.equal(dev.services.web.environment.PLAYWRIGHT_BASE_URL, 'http://web:5173');
  assert.equal(dev.services.web.environment.DB_PASSWORD, undefined);
 });
+import { productionWarnings } from '../dist/production.js';
+import { mkdtemp, rm, writeFile } from 'node:fs/promises';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
+test('SQL Server production edition warnings are instance scoped without exposing product keys', async t => {
+ const root = await mkdtemp(join(tmpdir(), 'ship-sql-edition-')); t.after(() => rm(root, { recursive: true, force: true }));
+ const config = parseConfig({ services: { database: 'sqlserver' }, additionalServices: [{ group: 'database', service: 'sqlserver', name: 'analytics' }] }, root);
+ await writeFile(join(root, '.env.production'), 'MSSQL_PID=Developer\nANALYTICS_MSSQL_PID=private-product-key\n');
+ const warnings = await productionWarnings(config, root);
+ assert.equal(warnings.length, 1); assert.match(warnings[0], /MSSQL_PID/); assert.doesNotMatch(warnings.join(), /private-product-key/);
+});

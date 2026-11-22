@@ -10,7 +10,7 @@ import { exists, parseConfig, readJson, readConfig, readManifest } from "./confi
 import { loadExtensions } from "./extensions.js";
 import { composePrefix, loadProject } from "./project.js";
 import { buildProjectCompose, selections } from "./compose.js";
-import { adapterProductionProblems, productionProblems } from "./production.js";
+import { adapterProductionProblems, productionProblems, productionWarnings } from "./production.js";
 import { assembleRelease, buildProduction, VERSION } from "./release.js";
 import { run } from "./process.js";
 import { ConfigError, ProcessError } from "./errors.js";
@@ -151,6 +151,7 @@ async function main(argv: string[]): Promise<void> {
     const model = await buildProjectCompose(config, root, "production", "local", registry);
     const problems = [...await adapterProductionProblems(config, root, registry), ...await productionProblems(model, root), ...await buildContextProblems(root), ...await buildSecretProblems(config, root)];
     if (problems.length) throw new ConfigError(problems);
+    for (const warning of await productionWarnings(config, root)) console.warn(`ship: ${warning}`);
     console.log("Configuration, project files and development/production models are valid."); return;
   }
   if (command === "build") {
