@@ -5,7 +5,14 @@ public prerelease; they are not a stable compatibility promise.
 
 ## Unreleased
 
-- TypeScript ESM CLI and public extension API with no runtime dependencies.
+- Canonical Ship configuration/release compatibility, offline schema copies and shared conformance checks.
+- Portable PHP service catalog, Selenium/Bull Board, development-only browser/mail tools and on-demand Cypress.
+- HTTP process/health definitions, multiple external networks and validated optional extension capabilities.
+- Stateful Clack setup wizard with back navigation, plain fallback, file preview and preserved environment examples.
+- Container-based package-manager switching, optional Mutagen synchronization and explicit release replacement recovery.
+
+
+- TypeScript ESM CLI and public extension API and a pinned, lazily loaded rich prompt dependency.
 - Development environments and portable Docker releases for generic Node apps,
   React, Vue, Angular, Svelte, NestJS, Fastify, Express, Next.js, Nuxt, SvelteKit,
   Astro, VitePress, TanStack Start and Gatsby, within the documented deployment modes.

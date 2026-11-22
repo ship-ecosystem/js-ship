@@ -51,7 +51,7 @@ export default {
 
 Run `ship init` (or `ship init --framework example-node`) and `ship config:test`.
 For existing templates, review edits and use `ship init --force`. Current templates
-use format 8. The example's notes appear at `ship/extensions/example/notes.txt`.
+use format 9. The example's notes appear at `ship/extensions/example/notes.txt`.
 Use `serviceNames` to rename existing services; an extension is not necessary for
 renaming. Reusing complex built-in adapters/services may depend on their dedicated
 core template strategy; the simple generic/Redis example above fits API v1.

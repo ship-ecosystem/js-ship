@@ -31,7 +31,7 @@ builds these libraries once, then starts the app's development script. Supply yo
 own watchers if shared libraries need continuous rebuilding.
 
 After changing workspace/app/build-order settings, review generated-file edits and
-run `ship init --force`. Current templates use format 8. Adding or removing workspace
+run `ship init --force`. Current templates use format 9. Adding or removing workspace
 package directories also needs a template refresh for dependency-volume setup.
 Changing apps with `ship init --workspace apps/web --force` redetects framework
 and script defaults; review the resulting `ship.json`.

@@ -1,5 +1,12 @@
 # First public alpha readiness review
 
+**Superseded by the November 23 ecosystem parity pass.** The earlier review below
+is historical. The release format, service catalog and prompt dependencies have
+changed; see [roadmap](roadmap.md), [ecosystem compatibility](ecosystem-parity.md) and
+[verification](verification.md). Current candidate approval requires the final
+authorized CI run and publication of the local shared-spec changes.
+
+
 Reviewed November 18, 2026, starting from `33381b4` and including the fixes in this
 review. The package is ready for candidate preparation within the scope below.
 It is **not approved for publication**: the real manifest remains private at
@@ -11,7 +18,7 @@ Actions workflows remain disabled. This review did not run GitHub CI.
 | Area | Result |
 | --- | --- |
 | Requested framework/database scope | All fourteen adapters and MongoDB are implemented within the documented deployment modes. Representative builds exist; arbitrary version/mode/platform combinations are not claimed. |
-| Package identity | Unscoped `js-ship`, GitHub `ship-ecosystem/js-ship`, MIT license, CLI, ESM/types/schema exports and explicit package contents are prepared. No npm runtime dependencies. |
+| Package identity | Unscoped `js-ship`, GitHub `ship-ecosystem/js-ship`, MIT license, CLI, ESM/types/schema exports and explicit package contents are prepared. At that review there were no runtime dependencies; the parity pass adds Clack. |
 | Release blocker fixed | CLI and exported Docker-release provenance used a hardcoded development version. Both now read the installed package manifest, so changing the npm version does not require editing TypeScript. |
 | Candidate validation gap fixed | `npm run release:check -- --candidate` checks non-development prerelease metadata, `private: false`, matching lockfile records and release notes offline. It does not authenticate, publish, create a tag or attest repository visibility. |
 | Local checks | 187 unit/boundary cases passed with no skips. A version-bump regression checks CLI/help and mocked Docker-release provenance. An isolated `0.1.0-alpha.0` copy passed candidate validation and an installed-tarball consumer check. |

@@ -80,7 +80,7 @@ Public variable declarations belong to the builder stage, after dependency
 installation. Changing a public value rebuilds the application; adding or removing
 variable names or secret settings changes the templates. Review custom edits and
 run `ship init --force` to refresh them. Existing format-4/5/6/7 projects need this
-refresh once; current templates use format 8. Build-secret mounts were introduced
+refresh once; current templates use format 9. Build-secret mounts were introduced
 in format 5.
 
 Secret contents are not Docker build arguments or persistent image environment

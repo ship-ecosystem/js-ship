@@ -178,3 +178,21 @@ Installed dependencies and the running container's globally installed tool may
 have changed; run `ship up` to rebuild and refresh using the restored configuration.
 Review and commit manifest/lockfile changes after a successful switch, then run
 `ship up`. Keep only the selected lockfile authoritative.
+
+Additional automation options include repeatable `--additional-service
+GROUP=PROVIDER:NAME`, `--remove-instance NAME`, and `--process-definition NAME=JSON`
+for structured health/HTTP process definitions. `--service GROUP=none` removes a
+primary provider; `--no-network` clears external networks. Example:
+
+```sh
+ship init --no-interaction --additional-service database=mysql:analytics \
+  --additional-service database=postgres:reporting \
+  --process-definition 'events={"command":["node","events.mjs"],"http":{"port":4000,"role":"websocket"}}'
+```
+
+Existing project settings not supplied by a flag are retained. Structured values
+still pass the same configuration, framework and filesystem checks as the wizard.
+
+Removing a service or named instance from configuration does not delete its Docker
+volumes. Renaming the application creates a different project/volume prefix; the
+wizard highlights that change, but migration remains an explicit operation.

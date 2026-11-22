@@ -1,141 +1,57 @@
 # Roadmap
 
-## First milestone: executable Node foundation
+## Implemented foundation
 
-Implemented, with local verification recorded in the README:
+- All fourteen requested framework adapters plus generic Node, with the supported
+  modes in [frameworks](frameworks.md).
+- Pinned npm/pnpm/Yarn 4 node_modules, workspaces and explicit shared build order.
+- Node/static/isolated production packaging, build secrets/public values, private
+  npm/pnpm registry configuration and reviewed runtime floors.
+- Persistent services, named instances, stable rename identities and database shells.
+- Production workers/HTTP processes, deploy commands, signal supervision and
+  explicit runtime files for traced/bundled outputs.
+- Configuration validation, read-only doctor diagnostics, overrides and proxy commands.
 
-- Compiled TypeScript CLI and declaration exports; no runtime dependencies.
-- Generic Node adapter and npm lockfile workflow.
-- Strict configuration, service contexts and named Postgres/Redis instances.
-- Development/production Compose generation, overrides and service renaming.
-- Development dependency isolation and startup refresh.
-- Worker processes sharing the production app image.
-- CLI proxies, terminal-aware execution, container and HTTP readiness checks.
-- Production credential checks and multi-stage production builds.
-- Staged release assembly, image deduplication, archive checksums, deploy commands.
-- Example app, unit/integration-boundary tests, opt-in live Docker workflow test.
+## PHP ecosystem parity pass — November 23, 2026
 
-Generic development/database/release workflows have passed live Docker checks.
+- JavaScript settings registered in the local canonical schema; unmodified schema
+  copies and a shared-checker drift tool added to js-ship.
+- Canonical `ship-release` metadata, image IDs/platform, source revision, owned
+  archives versus digest-pinned registry images, HTTP/service/console metadata,
+  environment names, networks and one deployment execution plan.
+- `--no-env`, explicit `--force` replacement with previous-artifact preservation,
+  private files, executable deployment scripts and manifest-last publication.
+- Process command/health/HTTP objects and multiple external networks.
+- Complete portable provider catalog from PHP Ship, plus Selenium and Bull Board;
+  browser tooling and Mailpit excluded from production.
+- Rich stateful setup wizard, grouped selections, named instances, process script
+  suggestions/custom processes, back navigation, plain fallback and automation flags.
+- Missing development settings and production examples; existing values preserved.
+- Container-based package-manager switching with consent and recorded-file recovery.
+- Optional Mutagen development synchronization and initial-install gating.
+- Optional validated adapter/service capability hooks, retaining extension API v1.
+- README/docs reorganized around the shared ecosystem workflow and operational needs.
 
-## Second milestone: package managers and shared deployment strategies
+Each implementation step is committed locally. This pass does not push, publish,
+change repository visibility, enable workflows or run GitHub Actions. Check
+[verification](verification.md) for current local evidence and
+[ecosystem compatibility](ecosystem-parity.md) for schema publication dependencies.
 
-Implemented with planning/template and release-boundary tests:
+## Release gates remaining outside local implementation
 
-- npm/pnpm abstraction, exact version pins, lockfile and manifest conflict checks.
-- Package-manager proxies and package-specific script argument forwarding.
-- Node packaging with production dependency pruning.
-- Static runtime with unprivileged Nginx, subpaths, SPA fallback, generated HTML
-  routing, real missing-asset 404s and no infrastructure env injection into app.
-- React, Vue, Svelte (Vite projects), VitePress, Express.js, Fastify and NestJS.
-- Specific framework detection, explicit overrides and unsupported-mode errors.
-- Template metadata and stale-packaging checks preserving custom edits.
-- Live VitePress subpath/source-free-release smoke test passed.
-- npm/pnpm source reload and branch-switch dependency-refresh regressions passed.
-- Live Vite React/Vue/Svelte component builds, subpath assets and SPA routes passed.
-- Live Express/Fastify/NestJS development and production HTTP passed, including
-  runtime values and NestJS TypeScript compiler pruning.
+1. Review and publish the local shared-spec changes so remote tools can consume
+   the registered JavaScript settings; refresh other producers' copies separately.
+2. Explicitly authorize final CI once the Actions budget permits. Earlier CI is
+   historical evidence, not coverage for this pass.
+3. Choose candidate metadata/release notes, make the repository public when ready,
+   configure npm account/trusted publishing and publish public test prereleases.
+4. Exercise the candidate through the shared deployment tooling on a clean target
+   and record platform/framework versions before making production-readiness claims.
 
-## Third milestone: framework output and MongoDB
+## Future compatibility expansion
 
-Implemented with planning, output-file and bootstrap tests:
-
-- Next.js standalone/static, Nuxt Node/generate, SvelteKit Node/static, Astro
-  static/standalone Node, Angular modern static/SSR, TanStack Start Nitro/Vite Node.
-- Gatsby static adapter using its public build API; server/function/redirect
-  targets fail rather than producing a partial static release.
-- Fresh build-output checks, isolated framework runtimes, production dependency
-  copying, explicit worker/migration runtimeFiles and Angular CSR fallback handling.
-- Authenticated MongoDB standalone/single-member replica sets, readWrite app users,
-  URI encoding, named instances, stable data/key volumes and mongosh.
-- Builds/exports deduplicate both app and owned MongoDB images.
-- App/worker/deploy/proxy entrypoints construct MongoDB URIs without forwarding
-  the administrator password into app children.
-- Live Next.js standalone build/SSR/assets/source-free release passed.
-- Live Next.js static exports passed both trailing-slash layouts, portable Nginx
-  releases, nested routes, browser hydration and client navigation.
-- Live Astro, SvelteKit and Nuxt Node/static builds and HTTP/public assets passed;
-  Nuxt uses an explicit npm 11 pin. Astro development/build subpaths now agree.
-- Live Angular Node/static and TanStack Start React/Nitro builds passed.
-  Angular development authorizes loopback SSR requests while production retains
-  the application's hostname policy.
-- Live Gatsby static output/assets/security headers passed; an actual SSR page
-  is rejected. Built-in Gatsby header rules are accepted with conservative caching.
-- MongoDB live transactions, change streams, rename persistence, portable release
-  and standalone authentication/restart persistence passed.
-- Chromium verifies React/Vue/Svelte component and CSS HMR through actual published
-  ports, preserving an unchanged parent's state and document across edits.
-- Worker argv/shell crash and manual restarts, graceful child/app shutdown and
-  interactive TTY execs passed. Template format 4 supervises process groups.
-- GitHub host quality/installed-package checks passed on Linux/macOS/Windows
-  across Node 22/24/26. All twelve Docker suite jobs and six Chromium cases passed.
-- A fixture release was exported on one GitHub runner and booted on another
-  without application sources, SDK installation, a build or registry pulls.
-
-## Next: runtime verification and usability
-
-- Extend version/package-manager/framework-option coverage beyond the representative
-  live builds now available for all fourteen frameworks and Next.js export layouts.
-- Yarn 4 node_modules support implemented: immutable installs, pinned container
-  distribution, CLI proxy and root workspace production pruning. Plug'n'Play,
-  older Yarn majors and Yarn private-registry authentication remain unsupported.
-- Extend browser HMR coverage beyond Vite React/Vue/Svelte and add other browsers.
-- Broader subpath support, additional build tools and framework version matrices.
-- Gatsby SSR/DSG would require a separate runtime strategy.
-- Interactive init implemented with workspace/framework/service selection,
-  preflight review and cancellation before project writes. All choices have
-  equivalent flags; non-interactive and CI behavior is preserved.
-
-## Infrastructure
-
-- MySQL, Mailpit, Meilisearch.
-- Garage, SeaweedFS, RustFS, Silo, browser-test services.
-- External PostgreSQL/Redis/MongoDB documentation and build/runtime/browser
-  environment boundaries implemented, with a runnable connection-probe example.
-  Extend live checks to hosted-provider TLS, Atlas SRV, failover and cross-host access.
-- MongoDB failure recovery checks added for unhealthy startup, process crashes,
-  manual stops and credential mismatch. Extend coverage to version upgrades,
-  interrupted first initialization and backup restoration.
-
-## Public testing approach
-
-The first-alpha implementation review is complete; prepare the release candidate
-and complete the account/verification gates in [alpha readiness](alpha-readiness.md).
-Then make the GitHub repository public and publish a clearly marked npm prerelease
-for public testing after authorization. Authenticated
-private-registry download verification is deferred; do not block this work on it.
-The development repository remains private and the npm package remains unpublished.
-
-GitHub Actions test workflows are temporarily disabled to conserve the free
-account's remaining minutes. Continue local checks; re-enable and run CI only when
-the user authorizes the pre-release verification.
-
-## Before public beta
-
-- Slow app/worker shutdown and MongoDB failure recovery regression checks added.
-  Broaden checks to host/daemon failure, other infrastructure and Docker platform variants.
-- Build environment separation and npm/pnpm registry secret mounting implemented;
-  extend authenticated private-registry download coverage.
-- Reviewed Node floors, digest-pinned parent catalog, Dependabot configuration,
-  generated-artifact checks and scheduled npm audit implemented. Dependabot is
-  active on GitHub, including a successful native image-catalog update check.
-  Enable private vulnerability reporting before public testing.
-- Shared JSON Schema, offline editor integration and npm schema export implemented.
-- Extension API v1 implemented: explicit local JS/CJS modules, isolated validated
-  registries, owned volumes, namespaced templates and project-specific schemas.
-- Root npm/pnpm/Yarn workspace installs, explicit app/build order, isolated development
-  dependency volumes and layout-preserving Node/static packaging implemented.
-  Next.js standalone and Nuxt Node workspace layouts implemented. Other isolated
-  SSR workspace layouts and minimal dependency closures remain.
-- Changelog, npm metadata checks and a preview/explicit-prerelease publishing
-  workflow prepared; it retains the installed-package-tested artifact and uses
-  OIDC for publication. npm ownership bootstrap, the GitHub `npm` environment
-  and the package trusted-publisher settings remain account-side release steps.
-  See [npm release preparation](npm-release.md). The name remains `js-ship`.
-- Doctor recovery hints and JSON output implemented, including incomplete-project
-  diagnosis, Docker/Compose checks and service-state guidance without collecting
-  container credentials/logs. Effective development override/project selection,
-  profile guidance and Docker endpoint diagnostics implemented. Remote path/port
-  reachability and custom service behavior remain unverified.
-- Optional Mutagen integration.
-
-Current local results and their limits are recorded in [verification](verification.md).
+Broader framework versions/options, nonrepresentative platform/browser matrices,
+Gatsby SSR/DSG, other isolated SSR workspace layouts, Bun and Yarn Plug'n'Play are
+additional work. They are not silently accepted as supported configurations.
+Hosted-provider TLS/failover, infrastructure upgrades, backup restoration and remote
+Docker endpoint reachability need provider/deployment-specific validation.

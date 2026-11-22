@@ -57,6 +57,10 @@ removed by containerization.
 
 ## Browser testing
 
+Mailpit is development-only and never captures production email. Its default web UI
+is available on loopback at `MAILPIT_WEB_PORT` (8025 by default). Named Mailpit
+instances require an explicit override to publish their UI.
+
 Browser tools run only in development and never enter production releases.
 
 - Playwright runs a browser server with `PW_TEST_CONNECT_WS_ENDPOINT`; configure
@@ -65,7 +69,9 @@ Browser tools run only in development and never enter production releases.
   server package on its first start.
 - Cypress is an on-demand container under the `ship-testing` Compose profile.
   Start the app with `ship up`, then use `ship test` (or `ship test -- --spec ...`).
-  Its `CYPRESS_BASE_URL` follows app renames and ports. Custom Cypress config plugins
+  Its `CYPRESS_BASE_URL` follows app renames and ports. A dedicated runner dependency
+  volume masks host node_modules, and the image's Cypress package is made available
+  for the standard `defineConfig` import. Custom Cypress config plugins
   must have their dependencies available in the runner, not only in app's isolated
   node_modules volume; use an override to install runner dependencies if needed.
 - Selenium supplies the WebDriver endpoint in `SELENIUM_REMOTE_URL`. Connect
@@ -76,7 +82,10 @@ Browser tools run only in development and never enter production releases.
 
 Bull Board is a standalone dashboard, using the official
 [Docker image](https://felixmosh.github.io/bull-board/guide/docker). Select Redis or
-Valkey first. Production requires `BULL_BOARD_PASSWORD`; put the dashboard behind
+Valkey first. Production requires `BULL_BOARD_PASSWORD` and defaults to read-only operations.
+Set `BULL_BOARD_READ_ONLY=false` explicitly when write operations are intended;
+`BULL_BOARD_PREFIX` and `BULL_BOARD_BASE_PATH` configure queue discovery and routing.
+Put the dashboard behind
 an authenticated reverse proxy and do not expose it publicly without access control.
 
 BullMQ workers and Socket.IO/ws servers run application code. Configure them as
@@ -86,3 +95,8 @@ when known, and the public URL setting name. Centrifugo is the independent serve
 alternative and requires no project-owned server implementation.
 
 No Octane, Reverb or Dusk services are included: those integrations are PHP-specific.
+
+Centrifugo's development browser URL uses the selected framework's public prefix:
+`NEXT_PUBLIC_`, `NUXT_PUBLIC_`, `GATSBY_`, `PUBLIC_` (Astro/SvelteKit) or `VITE_`.
+For production, explicitly configure the final public URL in `build.publicEnv`
+using that framework's build mechanism. Runtime secrets remain server-side.

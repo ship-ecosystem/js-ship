@@ -29,5 +29,9 @@ Explicit project extension modules execute trusted host code, even during config
 validation. Entry-path checks are not a sandbox for their transitive imports.
 Application build/install scripts and editable Docker/Compose overrides are
 trusted project code. Ship cannot prevent them from persisting secrets they can
-read. Public build variables may enter browser bundles. Exported releases include
-runtime credentials in `.env` and must be handled as private artifacts.
+read. Public build variables may enter browser bundles. Exported releases may include
+runtime credentials in `.env` and must be handled as private artifacts. `--no-env`
+omits that file while retaining setting names; provision secrets on the destination.
+Portable provider images use reviewed catalog tags and are pinned by resolved
+digest in releases. Provider/runtime upgrades and persisted-data migrations require
+separate review.

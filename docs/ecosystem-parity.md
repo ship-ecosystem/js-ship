@@ -42,7 +42,7 @@ Public build values are compiled into frontend assets and cannot be changed by
 runtime `.env` settings. Build secrets are never included in the release.
 
 Release directories are private (0700), deployment scripts executable (0755), and
-existing tags are never replaced. Files are staged before publication;
+existing tags require explicit `--force` to replace. Files are staged before publication;
 `release.json` is written last as the completeness marker.
 
 ## Local conformance checks

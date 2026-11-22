@@ -82,3 +82,18 @@ schema tests use AJV only as a development dependency.
 `npm run build` generates `schema/ship.schema.json`; keep the generated file committed.
 Tests compile the schema, validate generated configurations and malformed inputs,
 and verify that a separately installed tarball exports and copies the same schema.
+
+## Ecosystem schemas and additional capabilities
+
+The canonical ecosystem schema is bundled unmodified under `schema/canonical/`.
+The local editor profile is stricter and intentionally has a separate identity.
+`ship init` omits an absent external network from serialized JSON; the runtime
+parser also accepts legacy `null`. A configured network may be one name or a
+nonempty unique list. HTTP processes support `{ command, healthcheck?, http? }`
+with literal container port, role, healthy path and public URL setting name.
+`hostUser` defaults true; `siloImage` selects standard/distroless.
+
+See [ecosystem compatibility](ecosystem-parity.md) for canonical drift checks and
+[services](services.md) for all built-in groups. These shared-schema additions are
+committed locally in the spec repository and require separate publication before
+the remote canonical URL describes them.

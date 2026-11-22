@@ -1,5 +1,9 @@
 # Verification
 
+Latest: [November 23 parity report](parity-report.md), with 228 local regression
+cases and the additional service/release checks recorded at the end of this file.
+Earlier entries below are historical evidence for their stated revisions.
+
 Verified on November 16–18, 2026 with Node 22.23.3, npm 11.20.0,
 TypeScript 5.9.3, Docker Engine 29.9.2 and Compose 5.6.1 on Linux.
 The granted execution permission enabled Docker, subprocess and socket tests.
@@ -620,3 +624,57 @@ The repository remains private and npm remains unpublished.
   and publishing rights as release gates. The repository was confirmed private
   and all four package workflows manually disabled. Full final-candidate CI,
   public visibility and publication remain explicitly deferred.
+
+## November 23, 2026 — PHP ecosystem parity pass
+
+This section supersedes earlier claims about the custom JS release format and a
+zero-runtime-dependency package. The current producer uses the canonical
+`ship-release` contract and pinned `@clack/prompts`, loaded lazily for rich init.
+All work in this pass is local: no push, publication, visibility change or GitHub
+Actions run. The PHP source was reviewed at `0964965`; the shared spec at `be4cc80`.
+JavaScript configuration registration is committed in the local spec checkout
+and must be published separately before the remote canonical URL includes it.
+
+Local evidence on Linux Docker Engine 29.9.2, with supported host Node 24.22.3:
+
+- The local typecheck and unit/boundary/terminal suite passed. The final case count
+  and installed-package check are recorded in [the completion report](parity-report.md).
+- Both unmodified canonical schemas and the adapted shared release checker passed
+  drift checks. Config/release examples in the spec repository passed its test suite.
+- Canonical release tests validate complete generated folders, cross references,
+  checksums, digest pinning, required environment names, HTTP/console capabilities,
+  no-env behavior, mixed-platform rejection, source identity and replacement failure
+  preservation. These boundary cases use mocked Docker responses where indicated.
+- A real generic Node/PostgreSQL/Redis release passed the shared folder checker and
+  booted after its source was removed. A separate transfer rehearsal removed source
+  and the local app image, then loaded/booted the copied artifact without a build,
+  SDK installation or registry pull (that fixture has no third-party services).
+- The seventeen added providers passed actual container startup/readiness checks:
+  MySQL, MariaDB, SQL Server, Valkey, Memcached, SeaweedFS, Garage, RustFS, Silo,
+  Meilisearch, Elasticsearch, Typesense, Mailpit, Centrifugo, RabbitMQ, Selenium and
+  Bull Board. MySQL/MariaDB also executed an app-user query. Selenium created a
+  real headless Chromium WebDriver session and checked a page title.
+- Elasticsearch initially refused allocation because this shared machine was above
+  its disk high watermark. It passed with `SHIP_TEST_LOW_DISK_ELASTIC=1`, an explicit
+  fixture-only allocation override. Generated production settings retain safeguards.
+  Selenium's first image download exceeded the initial five-minute test deadline;
+  its cached-image retry passed. Catalog tests now bound Docker operations with a
+  longer download allowance. Neither initial attempt is represented as a clean pass.
+- Playwright 1.65.1 launched a real browser through its Docker browser server and
+  reached the renamed app on the internal network. Cypress 16.3.0 passed a real
+  on-demand `ship test` request suite against that app.
+- Package-manager switching passed live npm → pnpm 12.21.0 → Yarn 4.18.1, rebuilding
+  and checking each tool/version and authoritative lockfile. The test uncovered npm
+  12 blocking pnpm's installer scripts; Ship explicitly allows only that pinned
+  bootstrap package. Application dependency script policy remains manager-owned.
+- Isolated Mutagen 0.18.1 passed initial synchronization, frozen install, HTTP ready,
+  host source reload and session teardown. It was downloaded under /tmp for the
+  test, with a separate data directory; no system installation was changed.
+- A real pseudo-terminal checked rich rendering, Ctrl+U back navigation, Ctrl+C
+  status 130, alternate-screen restoration and unchanged project files.
+
+These checks do not re-establish every historical framework build on every current
+platform/version, prove production load or high availability, or replace final
+candidate CI/deployment-tool verification. Earlier Linux/macOS/Windows and framework
+results above remain historical evidence with their stated limits. All fourteen
+frameworks retain their documented modes; unsupported output targets fail explicitly.

@@ -25,7 +25,7 @@ The policy is a bundled, reviewed baseline, not an online advisory lookup. New
 security releases need prompt maintainer review. Upstream end-of-life dates also
 need review; removing a supported Node major is a deliberate compatibility change.
 
-## One image catalog
+## Reviewed image catalogs
 
 `images/Dockerfile` is the source of default Node, Nginx, PostgreSQL, Redis and
 MongoDB image references. Each `FROM <image> AS <key>` entry is read by the build
@@ -66,14 +66,14 @@ and [Dependabot configuration](https://docs.github.com/en/code-security/referenc
 Quality CI checks the generated artifacts and runs `npm audit --audit-level=high`
 in a separate job, including on the weekly schedule. Docker CI runs for catalog
 changes and weekly regression checks. The npm audit covers SDK development-tool
-packages as well as runtime dependencies (currently none). It is not an application
+packages as well as runtime dependencies (including the pinned Clack prompts). It is not an application
 or container OS vulnerability scan. The package-manager bootstrap pin and embedded
 framework test fixtures still need deliberate maintenance; they are not discovered
 as ordinary package dependencies by this configuration.
 
 ## Applying an SDK/image update to an application
 
-Current templates use format 8. Updating Ship alone does not overwrite editable
+Current templates use format 9. Updating Ship alone does not overwrite editable
 project templates or rebuild running images. After reviewing custom changes:
 
 ```sh
@@ -97,3 +97,12 @@ Existing archives and loaded images remain fixed snapshots and do not receive
 patches automatically. Retest and rebuild them when a relevant advisory appears.
 Digest pinning and version floors are reproducibility/maintenance controls, not a
 claim that all application or operating-system vulnerabilities have been eliminated.
+
+Portable provider tags live in `images/services/Dockerfile`; the same generator
+writes `src/service-images.ts`, used by service definitions and Garage templates.
+Dependabot checks this catalog separately. The Silo variants must move together;
+Playwright's server package version is derived from its image tag. Provider tags
+may track a reviewed release branch; exported releases always pin the resolved
+registry digest. Review upstream compatibility before accepting provider updates.
+Both core and portable catalog versions participate in template metadata, so SDK
+image updates require explicit template review/refresh before project builds.
