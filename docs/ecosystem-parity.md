@@ -44,3 +44,12 @@ runtime `.env` settings. Build secrets are never included in the release.
 Release directories are private (0700), deployment scripts executable (0755), and
 existing tags are never replaced. Files are staged before publication;
 `release.json` is written last as the completeness marker.
+
+## Local conformance checks
+
+`npm run check:spec -- PATH_TO_SPEC` compares both canonical schema files byte for
+byte and checks the shared release checker for drift. `npm run check:release --
+/path/to/dist/ship/TAG` validates a complete release folder, including cross-field
+references, Compose service/image identities and archive hashes. Its checker is
+adapted from the shared spec with only the schema path changed. These tools are
+local development dependencies, not requirements on the deployment host.

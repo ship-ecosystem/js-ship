@@ -27,6 +27,7 @@ import { tmpdir } from 'node:os';
 import { resolve, join } from 'node:path';
 import { initProject } from '../dist/init.js';
 import { assembleRelease } from '../dist/release.js';
+import { check } from '../scripts/spec/check-release.mjs';
 import { imageInspection } from './helpers/images.mjs';
 const releaseSchema = JSON.parse(await readFile(new URL('../schema/canonical/ship-release.schema.json', import.meta.url)));
 const validateRelease = new Ajv2020({ strict: false, allErrors: true }).compile(releaseSchema);
@@ -47,6 +48,7 @@ test('release folders follow the canonical schema, pin registry images and omit 
  const output = await assembleRelease(root, config, 'contract', runner, undefined, { noEnv: true });
  const release = JSON.parse(await readFile(join(output, 'release.json')));
  assert.equal(validateRelease(release), true, JSON.stringify(validateRelease.errors));
+ assert.deepEqual(check(output), []);
  assert.equal(release.app, `${config.name}-production`);
  assert.equal(release.env.file, null);
  assert.deepEqual(release.env.keys, ['DB_PASSWORD', 'SOCKET_URL']);
@@ -79,4 +81,13 @@ test('mixed platforms and missing registry digests cannot publish a release', as
   }), expected);
   await assert.rejects(stat(join(root, 'dist/ship', tag)), { code: 'ENOENT' });
  }
+});
+test('explicit force replaces a release only after the replacement is complete', async t => {
+ const { root, config } = await releaseFixture(t);
+ const first = await assembleRelease(root, config, 'replace', runner);
+ const previous = await readFile(join(first, 'release.json'));
+ await assert.rejects(assembleRelease(root, config, 'replace', async args => { if (args[1] === 'save') throw new Error('export failed'); return runner(args); }, undefined, { force: true }), /export failed/);
+ assert.deepEqual(await readFile(join(first, 'release.json')), previous);
+ await assembleRelease(root, config, 'replace', runner, undefined, { force: true });
+ assert.deepEqual(check(first), []);
 });

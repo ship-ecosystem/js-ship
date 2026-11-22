@@ -1,4 +1,5 @@
 #!/usr/bin/env node
+import { mutagenEnabled, requireMutagen, startSync, stopSync } from "./sync.js";
 import { switchPackageManager } from "./switch-manager.js";
 import { resolve } from "node:path";
 import { parseArgs } from "node:util";
@@ -46,7 +47,7 @@ Usage: ship [--project-directory PATH] COMMAND [arguments]
   config:test                Check project and both Compose models, no Docker
   doctor [--json]            Diagnose project/Docker/service issues with recovery hints
   build [--no-cache]         Build project-owned production images
-  release --tag TAG [--no-env] Export a Docker-only release under dist/ship/TAG
+  release --tag TAG [--no-env] [--force] Export a Docker-only release under dist/ship/TAG
 
 Adapters: generic, react, vue, angular, svelte, nestjs, fastify, expressjs,
           next, nuxt, sveltekit, astro, vitepress, tanstack-start, gatsby.
@@ -136,25 +137,28 @@ async function main(argv: string[]): Promise<void> {
     await buildProduction(root, config, run, "local", { noCache: opts["no-cache"] === true, registry }); return;
   }
   if (command === "release") {
-    const opts = options(args, { tag: { type: "string" }, "no-env": { type: "boolean" } });
+    const opts = options(args, { tag: { type: "string" }, "no-env": { type: "boolean" }, force: { type: "boolean" } });
     if (typeof opts.tag !== "string" && shouldPromptInit(!!process.stdin.isTTY, !!process.stdout.isTTY, false, process.env.CI)) {
       const terminal = await terminalInitPrompter();
       try { opts.tag = await terminal.ask({ key: "tag", label: "Release tag", defaultValue: "" }); } finally { terminal.close(); }
     }
     if (typeof opts.tag !== "string") throw new ConfigError(["release requires --tag TAG."]);
-    console.log(`Release written to ${await assembleRelease(root, config, opts.tag, run, registry, { noEnv: opts["no-env"] === true })}`); return;
+    console.log(`Release written to ${await assembleRelease(root, config, opts.tag, run, registry, { noEnv: opts["no-env"] === true, force: opts.force === true })}`); return;
   }
   const { prefix } = await composePrefix(root, config, "development", "local", { refreshApp: command === "up", registry });
   if (command === "up") {
     noArgs(args);
     const problems = [...await buildContextProblems(root), ...await buildSecretProblems(config, root, true)];
     if (problems.length) throw new ConfigError(problems);
+    if (mutagenEnabled()) await requireMutagen(root, run);
     await run([...prefix, "up", "--build", "-d", "--wait", "--wait-timeout", "180"], root);
+    if (mutagenEnabled()) await startSync(prefix, root, app, run);
     const port = await waitForStack(prefix, root, app, config.port, run);
     console.log(`Ready: http://127.0.0.1:${port}`); return;
   }
   if (command === "down") {
     const opts = options(args, { volumes: { type: "boolean" } });
+    await stopSync(root, run);
     await run([...prefix, "down", ...(opts.volumes ? ["--volumes"] : [])], root); return;
   }
   const exec = [...prefix, "exec", ...(!process.stdin.isTTY || !process.stdout.isTTY ? ["-T"] : [])];

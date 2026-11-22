@@ -59,7 +59,7 @@ async function sha256(path: string): Promise<string> {
   return hash.digest("hex");
 }
 
-export interface ReleaseOptions { noEnv?: boolean }
+export interface ReleaseOptions { noEnv?: boolean; force?: boolean }
 interface ImageDetails { Id: string; Os: string; Architecture: string; Variant?: string; RepoDigests?: string[] }
 async function inspectImage(ref: string, root: string, runner: Runner): Promise<ImageDetails> {
   const text = await runner(["docker", "image", "inspect", ref], root, { capture: true });
@@ -96,7 +96,7 @@ export async function assembleRelease(root: string, config: ShipConfig, tag: str
   registry ??= await loadExtensions(root, config.extensions);
   const parent = resolve(root, "dist", "ship");
   const destination = join(parent, tag);
-  if (await exists(destination)) throw new ConfigError([`Release ${tag} already exists. Use a new tag; existing releases are preserved.`]);
+  if (await exists(destination) && !options.force) throw new ConfigError([`Release ${tag} already exists. Use a new tag; existing releases are preserved.`]);
   const { prefix, model } = await composePrefix(root, config, "production", tag, { registry });
   const problems = await productionProblems(model, root);
   if (problems.length) throw new ConfigError(problems);
@@ -178,7 +178,15 @@ export async function assembleRelease(root: string, config: ShipConfig, tag: str
       "The settings file supplies runtime values. Public frontend values were compiled into the image at build time and cannot be changed by editing .env.", ""].join("\n"));
     // Completeness marker: no release files may be written after this manifest.
     await writeFile(join(stage, "release.json"), JSON.stringify(metadata, null, 2) + "\n");
-    await rename(stage, destination);
+    if (options.force && await exists(destination)) {
+      const previous = await mkdtemp(join(parent, ".previous-"));
+      const backup = join(previous, "release");
+      let canRemove = false;
+      try {
+        await rename(destination, backup);
+        try { await rename(stage, destination); canRemove = true; } catch (error) { await rename(backup, destination); canRemove = true; throw error; }
+      } finally { if (canRemove) await rm(previous, { recursive: true, force: true }); }
+    } else await rename(stage, destination);
     return destination;
   } finally { await rm(stage, { recursive: true, force: true }); }
 }

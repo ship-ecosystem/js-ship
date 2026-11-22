@@ -9,7 +9,7 @@ import { DEFAULT_NPM_VERSION, EXACT_VERSION, manifestManager } from "./package-m
 import { defaultDeployment } from "./framework-profiles.js";
 import { applicationRoot, containedDirectory, workspacePackages } from "./workspaces.js";
 import { planInitProject, type InitOptions } from "./init.js";
-import { NAME, NETWORK_NAME } from "./config-rules.js";
+import { NAME, NETWORK_NAME, RESERVED } from "./config-rules.js";
 import { scriptCommand } from "./package-managers.js";
 import { runWizard } from "./wizard.js";
 import { ConfigError, ProcessError } from "./errors.js";
@@ -126,7 +126,7 @@ async function collectInitOptions(root: string, supplied: InitOptions, ask: AskI
     }
     while (await choose(`addProcess${Object.keys(options.processes).length}`, "Add a custom production process?", "no", ["yes", "no"]) === "yes") {
       const n = Object.keys(options.processes).length;
-      const name = await choose(`processName${n}`, "Process name", "", undefined, v => NAME.test(v) && !Object.hasOwn(options.processes!, v));
+      const name = await choose(`processName${n}`, "Process name", "", undefined, v => NAME.test(v) && !RESERVED.has(v) && !Object.hasOwn(options.processes!, v));
       const command = await choose(`processCommand${n}`, "Process shell command", "", undefined, v => !!v.trim());
       const port = await choose(`processPort${n}`, "HTTP port (none for a worker)", "none", undefined, v => v === "none" || /^\d+$/.test(v) && Number(v) > 0 && Number(v) <= 65535);
       const healthcheck = await choose(`processCheck${n}`, "Health command (none when unknown)", "none");

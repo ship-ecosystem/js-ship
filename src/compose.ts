@@ -1,3 +1,4 @@
+import { mutagenEnabled } from "./sync.js";
 import { createHash } from "node:crypto";
 import { resolveWorkspace } from "./workspaces.js";
 import { resolve } from "node:path";
@@ -35,6 +36,7 @@ export function buildCompose(config: ShipConfig, root: string, environment: Envi
   if (config.extensions.length && !registry) throw new ConfigError(["Load the extension registry before synchronous planning, or use buildProjectCompose."]);
   if (config.workspace && !workspacePackages.includes(config.workspace.app)) throw new ConfigError(["Workspace Compose generation needs resolved package paths. Use buildProjectCompose for workspace projects."]);
   const production = environment === "production";
+  const sync = !production && mutagenEnabled();
   const selected = selections(config, environment, root, registry);
   const adapter = adapterFor(config, registry);
   const plan = adapter.packaging(config);
@@ -55,6 +57,7 @@ export function buildCompose(config: ShipConfig, root: string, environment: Envi
   external.forEach((name, i) => { networks[externalKeys[i]!] = { external: true, name }; });
   const model: ComposeModel = { name: config.name + (production ? "-production" : ""), services: {}, volumes: {}, networks };
   const environmentVars: Record<string, string> = { NODE_ENV: production ? "production" : "development", HOST: "0.0.0.0", PORT: String(config.port) };
+  if (sync) environmentVars.SHIP_WAIT_FOR_SYNC = "1";
   if (config.framework === "next" && plan.kind === "node") environmentVars.HOSTNAME = "0.0.0.0";
   if (config.framework === "angular" && !production) environmentVars.NG_ALLOWED_HOSTS = "${NG_ALLOWED_HOSTS:-localhost,127.0.0.1}";
   const depends: Record<string, { condition: string }> = {};
@@ -62,7 +65,12 @@ export function buildCompose(config: ShipConfig, root: string, environment: Envi
   for (const { definition, context } of selected) {
     if (production && definition.developmentOnly) continue;
     const fragment = definition.compose(context);
-    const ownedVolumes = new Set((definition.volumes ?? []).map(suffix => context.volume(suffix)));
+    if (sync && Array.isArray(fragment.volumes)) fragment.volumes = fragment.volumes.map(mount => {
+      if (typeof mount === "string" && [".", root].includes(mount.split(":")[0]!)) return `ship_source:${mount.split(":").slice(1).join(":")}`;
+      if (mount && typeof mount === "object" && mount.type === "bind" && mount.source === root) return { ...mount, type: "volume", source: "ship_source" };
+      return mount;
+    });
+    const ownedVolumes = new Set([...(definition.volumes ?? []).map(suffix => context.volume(suffix)), ...(sync ? ["ship_source"] : [])]);
     if (fragment.volumes !== undefined && !Array.isArray(fragment.volumes)) throw new ConfigError([`Service ${definition.key} volumes must be a Compose mount array.`]);
     for (const mount of (fragment.volumes ?? []) as unknown[]) {
       const source = typeof mount === "string" && mount.includes(":") ? mount.split(":")[0]
@@ -111,13 +119,14 @@ export function buildCompose(config: ShipConfig, root: string, environment: Envi
     ...(!production && config.build.npmrc ? { secrets: [{ source: "ship_npmrc", target: "ship_npmrc" }] } : {}),
     command: composeCommand(production ? adapter.productionCommand(config) : adapter.developmentCommand(config)),
     ...(production ? {} : { volumes: [
-      { type: "bind", source: resolve(root), target: "/app" },
+      { type: sync ? "volume" : "bind", source: sync ? "ship_source" : resolve(root), target: "/app" },
       { type: "volume", source: "node_modules", target: "/app/node_modules" },
       ...workspacePackages.map(path => ({ type: "volume", source: `workspace_${createHash("sha256").update(path).digest("hex").slice(0, 16)}`, target: `/app/${path}/node_modules` })),
     ], extra_hosts: ["host.docker.internal:host-gateway"] }),
     ...(!production || config.publishPorts ? { ports: [`${production ? "" : "127.0.0.1:"}\${APP_PORT:-${config.port}}:${targetPort}`] } : {}),
   };
   if (!production) {
+    if (sync) model.volumes.ship_source = {};
     model.volumes.node_modules = {};
     for (const path of workspacePackages) model.volumes[`workspace_${createHash("sha256").update(path).digest("hex").slice(0, 16)}`] = {};
   }

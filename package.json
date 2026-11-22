@@ -46,7 +46,9 @@
     "test:package": "npm run build && node scripts/check-package.mjs",
     "check": "npm run typecheck && npm test",
     "prepack": "npm run build",
-    "release:check": "node scripts/check-npm-release.mjs"
+    "release:check": "node scripts/check-npm-release.mjs",
+    "check:spec": "node scripts/check-spec.mjs",
+    "check:release": "node scripts/spec/check-release.mjs"
   },
   "devDependencies": {
     "@types/node": "22.20.5",
