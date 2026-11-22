@@ -38,7 +38,7 @@ Usage: ship [--project-directory PATH] COMMAND [arguments]
   config:test                Check project and both Compose models, no Docker
   doctor [--json]            Diagnose project/Docker/service issues with recovery hints
   build [--no-cache]         Build project-owned production images
-  release --tag TAG          Export a Docker-only release under dist/ship/TAG
+  release --tag TAG [--no-env] Export a Docker-only release under dist/ship/TAG
 
 Adapters: generic, react, vue, angular, svelte, nestjs, fastify, expressjs,
           next, nuxt, sveltekit, astro, vitepress, tanstack-start, gatsby.
@@ -107,9 +107,9 @@ async function main(argv: string[]): Promise<void> {
     await buildProduction(root, config, run, "local", { noCache: opts["no-cache"] === true, registry }); return;
   }
   if (command === "release") {
-    const opts = options(args, { tag: { type: "string" } });
+    const opts = options(args, { tag: { type: "string" }, "no-env": { type: "boolean" } });
     if (typeof opts.tag !== "string") throw new ConfigError(["release requires --tag TAG."]);
-    console.log(`Release written to ${await assembleRelease(root, config, opts.tag, run, registry)}`); return;
+    console.log(`Release written to ${await assembleRelease(root, config, opts.tag, run, registry, { noEnv: opts["no-env"] === true })}`); return;
   }
   const { prefix } = await composePrefix(root, config, "development", "local", { refreshApp: command === "up", registry });
   if (command === "up") {

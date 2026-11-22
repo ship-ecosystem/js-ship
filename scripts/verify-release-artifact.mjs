@@ -26,15 +26,15 @@ const manifest = JSON.parse(await readFile(join(root, 'release.json'), 'utf8'));
 assert.equal(manifest.tag, 'transfer');
 assert.equal(manifest.images.length, 1);
 const entry = manifest.images[0];
-assert.equal(entry.image, `${proof.project}-app:transfer`);
-assert.equal(model.services.app.image, entry.image);
+assert.equal(entry.ref, `${proof.project}-app:transfer`);
+assert.equal(model.services.app.image, entry.ref);
 assert.equal(entry.file, 'images/app.tar');
 assert.deepEqual(entry.services, ['app']);
 assert.match(entry.sha256, /^[a-f0-9]{64}$/);
 const hash = createHash('sha256');
 for await (const bytes of createReadStream(join(root, entry.file))) hash.update(bytes);
 assert.equal(hash.digest('hex'), entry.sha256, 'image archive checksum');
-const previous = spawnSync('docker', ['image', 'inspect', entry.image], { encoding: 'utf8' });
+const previous = spawnSync('docker', ['image', 'inspect', entry.ref], { encoding: 'utf8' });
 if (previous.error) throw previous.error;
 assert.notEqual(previous.status, 0, 'destination must not already contain the fixture image');
 const prefix = ['docker', 'compose', '--project-directory', root, '-f', join(root, 'docker-compose.yml')];
@@ -56,5 +56,5 @@ try {
   console.log('Transferred release verified without a build, registry pull, SDK installation or source checkout.');
 } finally {
   if (started) { try { run([...prefix, 'down', '--volumes', '--timeout', '5']); } catch {} }
-  if (loaded) { try { run(['docker', 'image', 'rm', entry.image]); } catch {} }
+  if (loaded) { try { run(['docker', 'image', 'rm', entry.ref]); } catch {} }
 }

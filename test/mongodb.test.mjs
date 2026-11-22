@@ -1,3 +1,4 @@
+import { imageInspection } from './helpers/images.mjs';
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
 import { mkdtemp, cp, readFile, writeFile, rm } from 'node:fs/promises';
@@ -51,7 +52,7 @@ test('MongoDB release builds each unique owned image once and exports named inst
   assert.equal((await productionProblems(model,root)).length,4);
   await writeFile(join(root,'.env.production'),'MONGODB_PASSWORD=app-unique\nMONGODB_ROOT_PASSWORD=root-unique\nANALYTICS_MONGODB_PASSWORD=analytics-unique\nANALYTICS_MONGODB_ROOT_PASSWORD=analytics-root-unique\n');
   const calls=[];
-  const output=await assembleRelease(root,cfg,'v1',async args=>{calls.push(args);if(args[1]==='save')await writeFile(args[3],'archive');return '';});
+  const output=await assembleRelease(root,cfg,'v1',async args=>{calls.push(args);if(args[1]==='save')await writeFile(args[3],'archive');return imageInspection(args) ?? '';});
   const build=calls.find(args=>args.includes('build'));
   assert.deepEqual(build.slice(build.indexOf('--pull')+1),['mongodb','app']);
   assert.ok(!calls.some(args=>args.includes('pull')));

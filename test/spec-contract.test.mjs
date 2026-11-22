@@ -21,3 +21,62 @@ test('canonical config accepts JS options, HTTP processes, multiple networks and
 test('process and network validation refuses malformed definitions', () => {
  for (const raw of [{ externalNetwork: [] }, { externalNetwork: ['proxy', 'proxy'] }, { processes: { worker: { command: [] } } }, { processes: { ws: { command: 'node ws', http: { port: 0, role: 'websocket' } } } }, { processes: { ws: { command: 'node ws', http: { port: 4000, role: 'websocket', urlSetting: 'https://secret' } } } }]) assert.throws(() => parseConfig(raw, '/project'));
 });
+
+import { cp, mkdtemp, rm, writeFile, stat } from 'node:fs/promises';
+import { tmpdir } from 'node:os';
+import { resolve, join } from 'node:path';
+import { initProject } from '../dist/init.js';
+import { assembleRelease } from '../dist/release.js';
+import { imageInspection } from './helpers/images.mjs';
+const releaseSchema = JSON.parse(await readFile(new URL('../schema/canonical/ship-release.schema.json', import.meta.url)));
+const validateRelease = new Ajv2020({ strict: false, allErrors: true }).compile(releaseSchema);
+async function releaseFixture(t, config = {}) {
+ const root = await mkdtemp(join(tmpdir(), 'ship-contract-'));
+ t.after(() => rm(root, { recursive: true, force: true }));
+ await cp(resolve('examples/node'), root, { recursive: true });
+ await writeFile(join(root, 'ship.json'), JSON.stringify(config));
+ return { root, config: await initProject(root) };
+}
+const runner = async args => {
+ if (args[1] === 'save') await writeFile(args[3], 'archive');
+ return imageInspection(args) ?? '';
+};
+test('release folders follow the canonical schema, pin registry images and omit secrets on request', async t => {
+ const { root, config } = await releaseFixture(t, { services: { database: 'postgres' }, externalNetwork: ['z-proxy', 'a-proxy'], deployCommands: [['node', 'migrate.mjs']], processes: { realtime: { command: ['node', 'socket.mjs'], http: { port: 4000, role: 'websocket', health: '/ready', urlSetting: 'SOCKET_URL' } } } });
+ await writeFile(join(root, '.env.production'), 'DB_PASSWORD=unique-credential\nSOCKET_URL=https://example.com\n');
+ const output = await assembleRelease(root, config, 'contract', runner, undefined, { noEnv: true });
+ const release = JSON.parse(await readFile(join(output, 'release.json')));
+ assert.equal(validateRelease(release), true, JSON.stringify(validateRelease.errors));
+ assert.equal(release.app, `${config.name}-production`);
+ assert.equal(release.env.file, null);
+ assert.deepEqual(release.env.keys, ['DB_PASSWORD', 'SOCKET_URL']);
+ assert.deepEqual(release.env.required, ['DB_PASSWORD']);
+ assert.deepEqual(release.requires.networks, ['a-proxy', 'z-proxy']);
+ assert.equal(release.images.length, 1);
+ assert.equal(release.pulledImages.length, 1);
+ assert.match(release.pulledImages[0].ref, /@sha256:[a-f0-9]{64}$/);
+ assert.equal(release.services.postgres.image, release.pulledImages[0].ref);
+ assert.equal(release.services.realtime.role, 'process');
+ assert.equal(release.services.realtime.healthcheck, true);
+ assert.deepEqual(release.deploy.needs, ['postgres']);
+ assert.equal(release.http.find(h => h.service === 'realtime').urlSetting, 'SOCKET_URL');
+ assert.doesNotMatch(JSON.stringify(release), /unique-credential|https:\/\/example/);
+ assert.match(await readFile(join(output, 'deploy-commands.sh'), 'utf8'), /run --rm --no-deps -T/);
+ if (process.platform !== 'win32') assert.equal((await stat(join(output, 'deploy-commands.sh'))).mode & 0o777, 0o755);
+ await assert.rejects(stat(join(output, '.env')), { code: 'ENOENT' });
+});
+test('mixed platforms and missing registry digests cannot publish a release', async t => {
+ const { root, config } = await releaseFixture(t, { services: { database: 'mongodb', cache: 'redis' } });
+ await writeFile(join(root, '.env.production'), 'MONGODB_PASSWORD=unique-app\nMONGODB_ROOT_PASSWORD=unique-admin\n');
+ for (const [tag, mutate, expected] of [
+  ['mixed', (i, ref) => { if (ref.includes('-app:')) i.Architecture = 'arm64'; }, /mixed platforms/],
+  ['missing-digest', i => { i.RepoDigests = []; }, /repository digest/],
+ ]) {
+  await assert.rejects(assembleRelease(root, config, tag, async args => {
+   const inspection = imageInspection(args);
+   if (inspection) { const items = JSON.parse(inspection); mutate(items[0], args[3]); return JSON.stringify(items); }
+   return runner(args);
+  }), expected);
+  await assert.rejects(stat(join(root, 'dist/ship', tag)), { code: 'ENOENT' });
+ }
+});

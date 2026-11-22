@@ -1,3 +1,4 @@
+import { imageInspection } from './helpers/images.mjs';
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
 import { cp, mkdir, mkdtemp, readFile, rm, writeFile } from 'node:fs/promises';
@@ -26,7 +27,7 @@ test('a staged npm version drives CLI, help and application-release provenance w
   await writeFile(join(app, '.env.production'), '');
   const destination = await assembleRelease(app, cfg, 'candidate', async args => {
     if (args[1] === 'save') await writeFile(args[3], 'mocked-image-export');
-    return '';
+    return imageInspection(args) ?? '';
   });
-  assert.equal(JSON.parse(await readFile(join(destination, 'release.json'), 'utf8')).ship.version, version);
+  assert.equal(JSON.parse(await readFile(join(destination, 'release.json'), 'utf8')).builder.version, version);
 });

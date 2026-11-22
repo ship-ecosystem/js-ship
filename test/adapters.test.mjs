@@ -1,3 +1,4 @@
+import { imageInspection } from './helpers/images.mjs';
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
 import { mkdtemp, readFile, writeFile, rm, readdir } from 'node:fs/promises';
@@ -202,7 +203,7 @@ test('static releases export a build-free nginx image with no runtime secrets or
   await writeFile(join(root, '.env.production'), 'PRIVATE_SERVER_SECRET=example-value\n');
   const destination = await assembleRelease(root, cfg, 'static-v1', async args => {
     if (args[1] === 'save') await writeFile(args[3], 'static-archive-fixture');
-    return '';
+    return imageInspection(args) ?? '';
   });
   const compose = await readFile(join(destination, 'docker-compose.yml'), 'utf8');
   assert.ok(!compose.includes('PRIVATE_SERVER_SECRET'));

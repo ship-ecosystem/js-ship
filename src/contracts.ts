@@ -73,6 +73,7 @@ export interface ServiceDefinition {
   readonly volumes?: readonly string[];
   compose(context: ServiceContext): ComposeService;
   appEnvironment(context: ServiceContext): Variables;
+  http?(context: ServiceContext): readonly HttpEndpoint[];
   databaseShell?(context: ServiceContext): readonly string[];
 }
 

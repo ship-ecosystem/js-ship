@@ -1,3 +1,4 @@
+import { imageInspection } from './helpers/images.mjs';
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
 import { mkdtemp, readFile, writeFile, rm } from 'node:fs/promises';
@@ -62,7 +63,7 @@ test('static runtime gets no env file, but the release directory still contains 
   await writeFile(join(root, '.env.production'), 'PRIVATE_RUNTIME_VALUE=only-in-export\n');
   const destination = await assembleRelease(root, cfg, 'static-docs', async args => {
     if (args[0] === 'docker' && args[1] === 'save') await writeFile(args[args.indexOf('-o') + 1], 'unit image stand-in');
-    return '';
+    return imageInspection(args) ?? '';
   });
   assert.equal(await readFile(join(destination, '.env'), 'utf8'), 'PRIVATE_RUNTIME_VALUE=only-in-export\n');
   const compose = JSON.parse((await readFile(join(destination, 'docker-compose.yml'), 'utf8')).replace(/^#[^\n]*\n/, ''));

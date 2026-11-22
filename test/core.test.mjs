@@ -1,3 +1,4 @@
+import { imageInspection } from './helpers/images.mjs';
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
 import { mkdtemp, readFile, writeFile, rm, cp, readdir, stat } from 'node:fs/promises';
@@ -172,11 +173,12 @@ test('release exports each image once, hashes archives and preserves existing re
   const runner = async args => {
     calls.push(args);
     if (args[1] === 'save') await writeFile(args[3], `archive:${args[4]}`);
-    return '';
+    return imageInspection(args) ?? '';
   };
   const destination = await assembleRelease(root, cfg, 'v1', runner);
   const manifest = JSON.parse(await readFile(join(destination, 'release.json'), 'utf8'));
-  assert.equal(manifest.images.length, 2);
+  assert.equal(manifest.images.length, 1);
+  assert.equal(manifest.pulledImages.length, 1);
   const app = manifest.images.find(item => item.services.includes('app'));
   assert.deepEqual(app.services, ['app', 'worker']);
   for (const entry of manifest.images) assert.equal(entry.sha256, createHash('sha256').update(await readFile(join(destination, entry.file))).digest('hex'));
@@ -195,7 +197,7 @@ test('a failed image export leaves no partial published release', async t => {
   await writeFile(join(root, '.env.production'), '');
   await assert.rejects(assembleRelease(root, cfg, 'broken', async args => {
     if (args[1] === 'save') throw new Error('export failed');
-    return '';
+    return imageInspection(args) ?? '';
   }), /export failed/);
   assert.deepEqual(await readdir(join(root, 'dist/ship')), []);
 });
