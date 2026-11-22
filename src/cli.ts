@@ -4,7 +4,7 @@ import { parseArgs } from "node:util";
 import { interactiveInitOptions, shouldPromptInit, terminalInitPrompter } from "./interactive.js";
 import { diagnoseProject, formatDoctor } from "./doctor.js";
 import { initProject, type InitOptions } from "./init.js";
-import { readConfig } from "./config.js";
+import { exists, parseConfig, readJson, readConfig, readManifest } from "./config.js";
 import { loadExtensions } from "./extensions.js";
 import { composePrefix, loadProject } from "./project.js";
 import { buildProjectCompose, selections } from "./compose.js";
@@ -13,6 +13,8 @@ import { assembleRelease, buildProduction, VERSION } from "./release.js";
 import { run } from "./process.js";
 import { ConfigError, ProcessError } from "./errors.js";
 import { buildContextProblems, buildSecretProblems } from "./build-environment.js";
+import { scriptCommand } from "./package-managers.js";
+import { applicationRoot } from "./workspaces.js";
 import { NODE_MINIMUMS } from "./images.js";
 import { nodeRuntimeProblem } from "./runtime-version.js";
 import { waitForStack } from "./runtime.js";
@@ -26,6 +28,10 @@ Usage: ship [--project-directory PATH] COMMAND [arguments]
        [--package-manager-version VERSION] [--no-interaction]
        [--deployment node|static] [--angular-project NAME]
        [--mongodb-mode standalone|replica-set] [--workspace PATH]
+       [--name NAME] [--node MAJOR] [--service GROUP=PROVIDER ...]
+       [--process NAME=COMMAND ...] [--network NAME ...]
+       [--deploy-command COMMAND ...] [--silo-image standard|distroless] [--no-host-user]
+  test [-- ARGUMENTS...]     Run the selected browser test tool (after ship up)
   up                         Build, start, wait for services and HTTP
   down [--volumes]            Stop; --volumes also deletes persisted data
   exec SERVICE COMMAND...    Execute in a running container
@@ -42,13 +48,13 @@ Usage: ship [--project-directory PATH] COMMAND [arguments]
 
 Adapters: generic, react, vue, angular, svelte, nestjs, fastify, expressjs,
           next, nuxt, sveltekit, astro, vitepress, tanstack-start, gatsby.
-Package managers: pinned npm, pnpm and Yarn 4 (node_modules). Services: PostgreSQL, Redis, MongoDB.
+Package managers: pinned npm, pnpm and Yarn 4 (node_modules). 22 infrastructure and testing services; see docs/services.md.
 Init prompts in terminals; --no-interaction skips all questions.
 Deployment modes and verification status are documented in docs/frameworks.md.
 `;
 
-function options(args: string[], definitions: Record<string, { type: "string" | "boolean" }>): Record<string, string | boolean | undefined> {
-  return parseArgs({ args, options: definitions, strict: true, allowPositionals: false }).values;
+function options(args: string[], definitions: Record<string, { type: "string" | "boolean"; multiple?: boolean }>): Record<string, string | string[] | boolean | undefined> {
+  return parseArgs({ args, options: definitions, strict: true, allowPositionals: false }).values as Record<string, string | string[] | boolean | undefined>;
 }
 function noArgs(args: string[]): void { if (args.length) throw new ConfigError([`Unexpected arguments: ${args.join(" ")}`]); }
 
@@ -63,12 +69,13 @@ async function main(argv: string[]): Promise<void> {
   const command = argv[0] ?? "--help", args = argv.slice(1);
   if (["--help", "-h", "help"].includes(command)) { console.log(HELP); return; }
   if (["--version", "-V"].includes(command)) { console.log(VERSION); return; }
-  const known = new Set(["init", "up", "down", "exec", "shell", "logs", "db", "npm", "pnpm", "yarn", "config:test", "doctor", "build", "release"]);
+  const known = new Set(["init", "up", "down", "exec", "shell", "logs", "db", "npm", "pnpm", "yarn", "config:test", "doctor", "build", "release", "test", "package-manager"]);
   if (!known.has(command)) throw new ConfigError([`Unknown command ${command}. Run ship --help.`]);
   if (command === "init") {
     const opts = options(args, { database: { type: "string" }, cache: { type: "string" }, framework: { type: "string" },
       "package-manager": { type: "string" }, "package-manager-version": { type: "string" }, deployment: { type: "string" },
-      "angular-project": { type: "string" }, "mongodb-mode": { type: "string" }, workspace: { type: "string" }, force: { type: "boolean" }, "no-interaction": { type: "boolean" } });
+      "angular-project": { type: "string" }, "mongodb-mode": { type: "string" }, workspace: { type: "string" }, name: { type: "string" }, node: { type: "string" }, "silo-image": { type: "string" }, "no-host-user": { type: "boolean" },
+      service: { type: "string", multiple: true }, process: { type: "string", multiple: true }, network: { type: "string", multiple: true }, "deploy-command": { type: "string", multiple: true }, force: { type: "boolean" }, "no-interaction": { type: "boolean" } });
     let initOptions: InitOptions = { ...(typeof opts.database === "string" ? { database: opts.database } : {}),
       ...(typeof opts.cache === "string" ? { cache: opts.cache } : {}), ...(typeof opts.framework === "string" ? { framework: opts.framework } : {}),
       ...(typeof opts["package-manager"] === "string" ? { packageManager: opts["package-manager"] } : {}),
@@ -76,9 +83,21 @@ async function main(argv: string[]): Promise<void> {
       ...(typeof opts.deployment === "string" ? { deployment: opts.deployment } : {}),
       ...(typeof opts["angular-project"] === "string" ? { angularProject: opts["angular-project"] } : {}),
       ...(typeof opts["mongodb-mode"] === "string" ? { mongodbMode: opts["mongodb-mode"] } : {}), ...(typeof opts.workspace === "string" ? { workspace: opts.workspace } : {}), force: opts.force === true };
+    for (const key of ["name", "node"] as const) if (typeof opts[key] === "string") initOptions[key] = opts[key];
+    if (typeof opts["silo-image"] === "string") initOptions.siloImage = opts["silo-image"];
+    if (opts["no-host-user"] === true) initOptions.hostUser = false;
+    const pairs = (value: unknown, label: string): Record<string, string> => Object.fromEntries((Array.isArray(value) ? value : []).map((entry: string) => {
+      const index = entry.indexOf("=");
+      if (index < 1 || index === entry.length - 1) throw new ConfigError([`${label} requires NAME=VALUE.`]);
+      return [entry.slice(0, index), entry.slice(index + 1)];
+    }));
+    if (opts.service) initOptions.services = { ...parseConfig(await exists(resolve(root, "ship.json")) ? await readJson(resolve(root, "ship.json")) : {}, root).services, ...pairs(opts.service, "--service") };
+    if (opts.process) initOptions.processes = { ...pairs(opts.process, "--process") };
+    if (Array.isArray(opts.network)) initOptions.externalNetwork = opts.network;
+    if (Array.isArray(opts["deploy-command"])) initOptions.deployCommands = opts["deploy-command"];
     if (shouldPromptInit(!!process.stdin.isTTY, !!process.stdout.isTTY, opts["no-interaction"] === true, process.env.CI)) {
-      const terminal = terminalInitPrompter();
-      try { initOptions = await interactiveInitOptions(root, initOptions, terminal.ask, message => console.log(message)); }
+      const terminal = await terminalInitPrompter();
+      try { initOptions = await interactiveInitOptions(root, initOptions, terminal.ask, terminal.inform); }
       finally { terminal.close(); }
     }
     await initProject(root, initOptions);
@@ -108,6 +127,10 @@ async function main(argv: string[]): Promise<void> {
   }
   if (command === "release") {
     const opts = options(args, { tag: { type: "string" }, "no-env": { type: "boolean" } });
+    if (typeof opts.tag !== "string" && shouldPromptInit(!!process.stdin.isTTY, !!process.stdout.isTTY, false, process.env.CI)) {
+      const terminal = await terminalInitPrompter();
+      try { opts.tag = await terminal.ask({ key: "tag", label: "Release tag", defaultValue: "" }); } finally { terminal.close(); }
+    }
     if (typeof opts.tag !== "string") throw new ConfigError(["release requires --tag TAG."]);
     console.log(`Release written to ${await assembleRelease(root, config, opts.tag, run, registry, { noEnv: opts["no-env"] === true })}`); return;
   }
@@ -127,6 +150,19 @@ async function main(argv: string[]): Promise<void> {
   const exec = [...prefix, "exec", ...(!process.stdin.isTTY || !process.stdout.isTTY ? ["-T"] : [])];
   const applicationCommand = (target: string, argv: readonly string[]) => [...exec, target,
     ...(target === app ? ["node", "/usr/local/bin/ship-app-entrypoint.mjs"] : []), ...argv];
+  if (command === "test") {
+    const tool = selections(config, "development", root, registry).find(s => s.definition.group === "testing" && !s.context.envPrefix);
+    if (!tool) throw new ConfigError(["Select a testing service with ship init or run your package's test script with ship npm/pnpm/yarn."]);
+    const forwarded = args[0] === "--" ? args.slice(1) : args;
+    if (tool.definition.key === "cypress") await run([...prefix, "run", "--rm", "--no-deps", ...(!process.stdin.isTTY ? ["-T"] : []), "--entrypoint", "cypress", tool.context.serviceName, "run", ...forwarded], root);
+    else if (tool.definition.key === "playwright") await run(applicationCommand(app, [config.packageManager, "exec", ...(config.packageManager === "npm" ? ["--"] : []), "playwright", "test", ...forwarded]), root);
+    else {
+      const manifest = await readManifest(applicationRoot(config, root));
+      if (!manifest.scripts?.["test:e2e"]) throw new ConfigError(["For Selenium, define a test:e2e package script using selenium-webdriver or WebdriverIO and SELENIUM_REMOTE_URL."]);
+      await run(applicationCommand(app, scriptCommand(config, "test:e2e", forwarded)), root);
+    }
+    return;
+  }
   if (command === "npm" || command === "pnpm" || command === "yarn") {
     if (command !== config.packageManager) throw new ConfigError([`This project selects ${config.packageManager}; use ship ${config.packageManager} to keep its lockfile authoritative.`]);
     await run(applicationCommand(app, [...(config.build.npmrc ? ["env", "NPM_CONFIG_USERCONFIG=/run/secrets/ship_npmrc"] : []), command, ...args]), root); return;

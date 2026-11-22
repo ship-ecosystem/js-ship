@@ -1,4 +1,4 @@
-export type { Environment, Command, ShipConfig, ServiceContext, ServiceDefinition, FrameworkAdapter, PackagingPlan, PackageManagerName, ComposeModel, ProjectManifest, ShipExtension, ExtensionRegistry } from "./contracts.js";
+export type { Environment, Command, HttpEndpoint, ProcessDefinition, ProcessConfig, ShipConfig, ServiceContext, ServiceDefinition, FrameworkAdapter, PackagingPlan, PackageManagerName, ComposeModel, ProjectManifest, ShipExtension, ExtensionRegistry } from "./contracts.js";
 export { ConfigError } from "./errors.js";
 export { parseConfig, readConfig } from "./config.js";
 export { buildCompose, buildProjectCompose, render } from "./compose.js";

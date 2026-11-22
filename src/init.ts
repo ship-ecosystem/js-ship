@@ -5,15 +5,17 @@ import { ConfigError } from "./errors.js";
 import { adapterFor, detectFramework } from "./adapters.js";
 import { buildProjectCompose } from "./compose.js";
 import { loadExtensions } from "./extensions.js";
-import type { ExtensionRegistry, ShipConfig } from "./contracts.js";
+import type { AdditionalService, Command, ExtensionRegistry, ProcessConfig, ShipConfig } from "./contracts.js";
 import { DEFAULT_NPM_VERSION, detectPackageManager, EXACT_VERSION, manifestManager, packageManagerProblems } from "./package-managers.js";
 import { renderTemplates, templateProblems } from "./templates.js";
 import { angularSettings } from "./angular.js";
 import { applicationRoot, containedDirectory, resolveWorkspace } from "./workspaces.js";
+import { writeEnvironmentExamples } from "./environment.js";
 import { BUILD_EXCLUSIONS } from "./build-environment.js";
 import { defaultDeployment } from "./framework-profiles.js";
 
-export interface InitOptions { force?: boolean; database?: string; cache?: string; framework?: string; packageManager?: string; packageManagerVersion?: string; deployment?: string; angularProject?: string; mongodbMode?: string; workspace?: string }
+export interface InitOptions { force?: boolean; database?: string; cache?: string; framework?: string; packageManager?: string; packageManagerVersion?: string; deployment?: string; angularProject?: string; mongodbMode?: string; workspace?: string; name?: string; node?: string; siloImage?: string; hostUser?: boolean; publishPorts?: boolean;
+  services?: Record<string, string>; additionalServices?: AdditionalService[]; processes?: Record<string, ProcessConfig>; externalNetwork?: string | string[] | null; deployCommands?: Command[] }
 export async function projectProblems(config: ShipConfig, root: string, registry?: ExtensionRegistry): Promise<string[]> {
   registry ??= await loadExtensions(root, config.extensions);
   await resolveWorkspace(config, root);
@@ -66,7 +68,7 @@ export async function planInitProject(root: string, options: InitOptions = {}, r
   const detected = managerName === undefined ? await detectPackageManager(root, rootManifest) : null;
   if (managerName !== undefined && managerName !== "npm" && managerName !== "pnpm" && managerName !== "yarn") throw new ConfigError(["--package-manager must be npm, pnpm or yarn."]);
   if ((managerName === "pnpm" || managerName === "yarn") && (typeof managerVersion !== "string" || !EXACT_VERSION.test(managerVersion))) throw new ConfigError([`Pin ${managerName} with package.json packageManager or --package-manager-version VERSION.`]);
-  const services = { ...((existing.services ?? {}) as Record<string, string>) };
+  const services = { ...((options.services ?? existing.services ?? {}) as Record<string, string>) };
   for (const key of ["database", "cache"] as const) {
     const value = options[key];
     if (value === "none") delete services[key];
@@ -81,6 +83,9 @@ export async function planInitProject(root: string, options: InitOptions = {}, r
     ...(options.mongodbMode ? { mongodbMode: options.mongodbMode } : {}),
     packageManager: managerName ?? detected!.name, packageManagerVersion: managerVersion ?? detected?.version,
     scripts: switching ? defaults.scripts : { ...defaults.scripts, ...((existing.scripts ?? {}) as object) } };
+  for (const key of ["name", "node", "siloImage", "hostUser", "publishPorts", "additionalServices", "processes", "externalNetwork", "deployCommands"] as const) {
+    if (options[key] !== undefined) Object.assign(data, { [key]: options[key] });
+  }
   const config = parseConfig(data, root);
   const problems = await projectProblems(config, root, registry);
   if (!options.force) problems.push(...await templateProblems(config, root, registry));
@@ -101,7 +106,7 @@ export async function initProject(root: string, options: InitOptions = {}, regis
       await writeFile(destination, contents, { mode: filename.endsWith(".sh") ? 0o755 : 0o644 });
     }
   }
-  await writeFile(resolve(root, "ship.json"), JSON.stringify({ $schema: existing.$schema ?? "./ship/ship.schema.json", ...config }, null, 2) + "\n");
+  await writeFile(resolve(root, "ship.json"), JSON.stringify({ $schema: existing.$schema ?? "./ship/ship.schema.json", ...config, ...(config.externalNetwork === null ? { externalNetwork: undefined } : {}) }, null, 2) + "\n");
   await appendRules(resolve(root, ".dockerignore"), [".ship-secrets", "**/.npmrc", "**/.env", "**/.env.*", "**/node_modules", "**/.yarn/cache", "**/.yarn/unplugged", "**/.yarn/install-state.gz", "**/.yarn/build-state.yml", "**/.pnp.*", "node_modules", "dist/ship", ".git", ".env", ".env.*", "!.env.example", "*.tgz", ".npmrc", "ship/.gatsby-static.json"]);
   const ignorePath = resolve(root, ".dockerignore");
   const ignore = await readFile(ignorePath, "utf8");
@@ -110,6 +115,7 @@ export async function initProject(root: string, options: InitOptions = {}, regis
   if (BUILD_EXCLUSIONS.some(rule => active.lastIndexOf(rule) <= lastNegation)) {
     await writeFile(ignorePath, `${ignore}\n# Keep credential exclusions after negation rules.\n${BUILD_EXCLUSIONS.join("\n")}\n`);
   }
-  await appendRules(resolve(root, ".gitignore"), [".ship-secrets/", ".npmrc", "node_modules/", ".env", ".env.*", "!.env.example", "dist/ship/", "ship/.gatsby-static.json", "ship/docker-compose.generated.yml", "ship/docker-compose.production.yml"]);
+  await appendRules(resolve(root, ".gitignore"), [".ship-secrets/", ".npmrc", "node_modules/", ".env", ".env.*", "!.env.example", "!.env.production.example", "dist/ship/", "ship/.gatsby-static.json", "ship/docker-compose.generated.yml", "ship/docker-compose.production.yml"]);
+  await writeEnvironmentExamples(root, await buildProjectCompose(config, root, "development", "local", selectedRegistry), await buildProjectCompose(config, root, "production", "local", selectedRegistry));
   return config;
 }

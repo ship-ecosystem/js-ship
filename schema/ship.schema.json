@@ -626,6 +626,8 @@
             "doctor",
             "build",
             "release",
+            "test",
+            "package-manager",
             "npm",
             "pnpm",
             "yarn",

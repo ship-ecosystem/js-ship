@@ -4,11 +4,20 @@
 
 Run `ship init` from an application or workspace root containing package.json.
 When stdin and stdout are terminals and CI mode is not enabled, Ship asks for
-choices not already supplied as flags. It discovers workspace packages before
+choices not already supplied as flags. Rich terminals use pinned `@clack/prompts`
+with arrow-key selections, service category checkboxes and inline validation.
+Ctrl+U goes to the previous logical question; changing a choice recomputes later
+branches. Dumb/no-color terminals use numbered questions and `:back`. It discovers workspace packages before
 framework detection and shows defaults from existing configuration and manifests.
 
 | Choice | Equivalent flag |
 | --- | --- |
+| Stable application name | `--name my-app` |
+| Container Node major | `--node 24` |
+| Service provider | `--service storage=garage` (repeatable) |
+| Production process | `--process worker="npm run worker"` (repeatable) |
+| External networks | `--network proxy` (repeatable) |
+| Deployment commands | `--deploy-command "npm run migrate"` (repeatable) |
 | Workspace application | `--workspace apps/web` |
 | Framework | `--framework react` |
 | Deployment | `--deployment static` |
@@ -20,9 +29,12 @@ framework detection and shows defaults from existing configuration and manifests
 | MongoDB mode | `--mongodb-mode replica-set` or `standalone` |
 
 Workspace, Angular and MongoDB questions appear when relevant. Configured extension
-adapters and primary database/cache services are also available as choices. A
+adapters and services are available as choices. The wizard selects categories
+then a provider per category, keeps/removes named instances and processes, offers
+existing worker/realtime package scripts, and supports custom command/health/HTTP
+process definitions. It previews generated file changes before confirmation. A
 package-manager declaration in package.json must agree with the selected pin;
-Ship does not switch lockfiles, install dependencies or rewrite package.json.
+Initialization does not switch lockfiles, install dependencies or rewrite package.json.
 
 Supplied flags take precedence and are not prompted again. Existing advanced
 ship.json settings, named instances, workspace build order and edited templates
@@ -53,6 +65,12 @@ primary database/cache selection; additional named services remain configured.
 Unsupported modes, missing scripts, conflicting package-manager pins/lockfiles
 and unsafe paths fail before Ship writes files. Flags and interactive choices
 share the same validation and template-generation path.
+
+Init appends missing development settings to `.env` and `.env.example`, and
+creates/updates `.env.production.example` with `CHANGE_ME` for required credentials.
+Existing values and comments are retained; `.env` is private. Create your own
+`.env.production` with real credentials before building. Configuration JSON never
+contains those secret values.
 
 ## Doctor
 

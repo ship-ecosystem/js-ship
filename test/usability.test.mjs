@@ -166,7 +166,8 @@ test('workspace selection precedes framework detection and preserves ordered sha
   await writeFile(join(root, 'apps/web/package.json'), JSON.stringify({ dependencies: { react: '19.3.1', vite: '8.3.8' }, scripts: { dev: 'vite', build: 'vite build' } }));
   const seen = [];
   const opts = await interactiveInitOptions(root, {}, async q => { seen.push(q.key); return q.key === 'workspace' ? 'apps/web' : q.key === 'confirm' ? 'yes' : q.defaultValue; }, () => {});
-  assert.equal(seen[0], 'workspace'); assert.equal(opts.framework, 'react'); assert.equal(opts.deployment, 'static');
+  assert.equal(seen[0], 'name');
+  assert.ok(seen.indexOf('workspace') < seen.indexOf('framework')); assert.equal(opts.framework, 'react'); assert.equal(opts.deployment, 'static');
   const cfg = await initProject(root, opts); assert.equal(cfg.workspace.app, 'apps/web');
   assert.deepEqual(cfg.workspace.buildDependencies, ['packages/shared']);
 });

@@ -30,7 +30,7 @@ try {
   const consumer = join(work, 'consumer'), app = join(work, 'app'), site = join(work, 'gatsby'), workspace = join(work, 'workspace');
   await mkdir(consumer);
   await writeFile(join(consumer, 'package.json'), '{"private":true,"type":"module"}');
-  // No runtime dependencies: installation from the built tarball needs no registry.
+  // The pinned prompt dependencies were cached by npm ci; verify tarball installation offline.
   run([npm, 'install', '--offline', '--ignore-scripts', '--no-audit', '--no-fund', join(work, packed.filename)], consumer);
   const installed = join(consumer, 'node_modules', ...pkg.name.split('/'));
   const cli = join(installed, 'dist/cli.js');
