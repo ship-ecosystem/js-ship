@@ -172,7 +172,7 @@ export async function assembleRelease(root: string, config: ShipConfig, tag: str
     await writeFile(join(stage, "docker-compose.yml"), render(compose));
     if (deploy) await writeFile(join(stage, "deploy-commands.sh"), deployScript(config, compose), { mode: 0o755 });
     await writeFile(join(stage, "README.md"), [`# Release ${tag}`, "", `Ship application: ${compose.name}. Platform: ${platform}.`, "", "Requires Docker Engine and Compose 2.24.0+. From this directory:", "", "```sh",
-      ...images.map(entry => `docker load -i ${entry.file}`), ...(pulledImages.length ? ["docker compose pull"] : []), ...(deploy ? ["./deploy-commands.sh"] : []), "docker compose up -d", "```", "",
+      ...images.map(entry => `docker load -i ${entry.file}`), ...(pulledImages.length ? [`docker compose pull ${pulledImages.flatMap(entry => entry.services).map(quote).join(" ")}`] : []), ...(deploy ? ["./deploy-commands.sh"] : []), "docker compose up -d", "```", "",
       includeEnv ? "This directory contains production secrets in .env. Keep it private." : "No settings file is bundled. Provision .env on the destination (mode 0600) for application settings and Compose interpolation before deploying.",
       "Create the external networks listed in release.json before deploying. Production ports are disabled by default; connect a reverse proxy to the declared HTTP services.",
       "The settings file supplies runtime values. Public frontend values were compiled into the image at build time and cannot be changed by editing .env.", ""].join("\n"));

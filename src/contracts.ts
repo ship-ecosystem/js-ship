@@ -49,6 +49,8 @@ export interface ShipConfig {
   serviceNames: Record<string, string>;
   externalNetwork: string | string[] | null;
   publishPorts: boolean;
+  hostUser: boolean;
+  siloImage: "standard" | "distroless";
   processes: Record<string, ProcessConfig>;
   deployCommands: Command[];
 }
@@ -71,6 +73,8 @@ export interface ServiceDefinition {
   readonly label: string;
   readonly group: string;
   readonly volumes?: readonly string[];
+  readonly developmentOnly?: boolean;
+  readonly onDemand?: boolean;
   compose(context: ServiceContext): ComposeService;
   appEnvironment(context: ServiceContext): Variables;
   http?(context: ServiceContext): readonly HttpEndpoint[];

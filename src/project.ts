@@ -25,6 +25,7 @@ export async function generatedFileProblems(config: ShipConfig, root: string, re
   const mongo = Object.values(config.services).includes("mongodb") || config.additionalServices.some(s => s.service === "mongodb");
   for (const filename of [...Object.keys(registry.templates), "Dockerfile", "runtime-version.mjs", "check-runtime.mjs", "dev-entrypoint.sh", "app-entrypoint.mjs", "prepare-output.mjs", "output.json",
     ...(config.framework === "gatsby" ? ["gatsby-adapter.cjs"] : []),
+    ...((Object.values(config.services).includes("garage") || config.additionalServices.some(s => s.service === "garage")) ? ["garage/Dockerfile", "garage/garage.toml"] : []),
     ...(mongo ? ["mongodb/Dockerfile", "mongodb/entrypoint.sh", "mongodb/bootstrap.sh", "mongodb/bootstrap.js", "mongodb/health.js", "mongodb/app-user.js"] : []),
     ...(adapterFor(config, registry).packaging(config).kind === "static" ? ["nginx.conf"] : [])]) {
     if (!(await exists(resolve(root, "ship", filename)))) problems.push(`ship/${filename} is missing; run ship init.`);

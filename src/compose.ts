@@ -60,6 +60,7 @@ export function buildCompose(config: ShipConfig, root: string, environment: Envi
   const depends: Record<string, { condition: string }> = {};
   const ownedBuilds = new Map<string, string>();
   for (const { definition, context } of selected) {
+    if (production && definition.developmentOnly) continue;
     const fragment = definition.compose(context);
     const ownedVolumes = new Set((definition.volumes ?? []).map(suffix => context.volume(suffix)));
     if (fragment.volumes !== undefined && !Array.isArray(fragment.volumes)) throw new ConfigError([`Service ${definition.key} volumes must be a Compose mount array.`]);
@@ -70,14 +71,14 @@ export function buildCompose(config: ShipConfig, root: string, environment: Envi
     }
     if (fragment.build) {
       const signature = JSON.stringify(fragment.build);
-      if (ownedBuilds.has(definition.key) && ownedBuilds.get(definition.key) !== signature) throw new ConfigError([`Named ${definition.key} instances must share an identical build definition; use separate service keys for different images.`]);
+      if (definition.key !== "garage" && ownedBuilds.has(definition.key) && ownedBuilds.get(definition.key) !== signature) throw new ConfigError([`Named ${definition.key} instances must share an identical build definition; use separate service keys for different images.`]);
       ownedBuilds.set(definition.key, signature);
     }
-    model.services[context.serviceName] = { ...fragment, ...(fragment.build ? { image: `${config.name}-${definition.key}:${tag}` } : {}), networks: ["ship"] };
-    if (plan.kind === "node") Object.assign(environmentVars, definition.appEnvironment(context));
+    model.services[context.serviceName] = { ...fragment, ...(fragment.build ? { image: `${config.name}-${definition.key === "garage" ? context.resourceName : definition.key}:${tag}` } : {}), networks: ["ship", ...(definition.http ? externalKeys : [])], ...(definition.onDemand ? { profiles: ["ship-testing"] } : {}) };
+    if (plan.kind === "node" || (!production && definition.developmentOnly)) Object.assign(environmentVars, definition.appEnvironment(context));
     const health = fragment.healthcheck;
     const disabled = health && typeof health === "object" && (("disable" in health && health.disable) || ("test" in health && Array.isArray(health.test) && health.test[0] === "NONE"));
-    depends[context.serviceName] = { condition: health && !disabled ? "service_healthy" : "service_started" };
+    if (!definition.developmentOnly && !definition.onDemand) depends[context.serviceName] = { condition: health && !disabled ? "service_healthy" : "service_started" };
     for (const suffix of definition.volumes ?? []) model.volumes[context.volume(suffix)] = {};
   }
   const buildSecrets = [
@@ -105,7 +106,7 @@ export function buildCompose(config: ShipConfig, root: string, environment: Envi
       NODE_IMAGE: IMAGES[`node${config.node}` as keyof typeof IMAGES],
       SHIP_PACKAGE_MANAGER_VERSION: config.packageManagerVersion,
       SHIP_BUILD_SCRIPT: config.scripts.build ?? "",
-      SHIP_UID: String(process.getuid?.() || 1000), SHIP_GID: String(process.getgid?.() || 1000),
+      SHIP_UID: String(config.hostUser ? process.getuid?.() || 1000 : 1000), SHIP_GID: String(config.hostUser ? process.getgid?.() || 1000 : 1000),
     } },
     ...(!production && config.build.npmrc ? { secrets: [{ source: "ship_npmrc", target: "ship_npmrc" }] } : {}),
     command: composeCommand(production ? adapter.productionCommand(config) : adapter.developmentCommand(config)),

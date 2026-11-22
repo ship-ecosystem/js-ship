@@ -31,5 +31,5 @@ export async function productionProblems(model: ComposeModel, root: string, requ
   if (!(await exists(path))) return required.length || requireFile ? [".env.production is required for this production stack."] : [];
   const values = parseEnv(await readFile(path, "utf8"));
   return required.flatMap(key => !values[key] ? [`${key} is required in .env.production.`]
-    : ["shipsecret", "shiprootsecret", "changeme"].includes(values[key]!.toLowerCase()) ? [`${key} still uses a development credential.`] : []);
+    : ["shipsecret", "shiprootsecret", "changeme", "change_me", "secret", "rootsecret", "shipsecret123", "shiproot123", "shipsecretplaceholder", "ship-centrifugo-api-key", "ship-centrifugo-token-secret", "guest", "0000000000000000000000000000000000000000000000000000000000000000"].includes(values[key]!.toLowerCase()) ? [`${key} still uses a development credential.`] : []);
 }

@@ -63,7 +63,7 @@ test('API version, names, collisions and unsafe template/volume declarations fai
     { ...custom(), templates: { '../Dockerfile': 'bad' } }, { ...custom(), services: [{ ...custom().services[0], volumes: ['../bad'] }] }]) assert.throws(() => createRegistry([extension]));
   assert.throws(() => createRegistry([custom(), custom()]), /unique/);
   assert.throws(() => createRegistry([custom(), { ...custom(), name: 'other' }]), /duplicate adapters/);
-  assert.equal(builtinAdapters.size, 15); assert.equal(builtinServices.size, 3);
+  assert.equal(builtinAdapters.size, 15); assert.equal(builtinServices.size, 22);
 });
 
 test('malformed callback results cannot become Docker commands or packaging paths', () => {

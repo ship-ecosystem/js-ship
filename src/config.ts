@@ -7,7 +7,7 @@ import { DEFAULT_NPM_VERSION, EXACT_VERSION } from "./versions.js";
 
 import { NAME, INSTANCE, RESERVED, RELATIVE_PATH, SCRIPT_NAME, BASE_PATH, NETWORK_NAME, ENV_NAME, PUBLIC_PREFIX } from "./config-rules.js";
 export { NAME, INSTANCE, RESERVED } from "./config-rules.js";
-const FIELDS = new Set(["$schema", "extensions", "workspace", "build", "framework", "deployment", "serverEntry", "runtimeFiles", "angularProject", "mongodbMode", "node", "name", "packageManager", "packageManagerVersion", "scripts", "port", "outputDirectory", "staticRouting", "basePath", "services", "additionalServices", "serviceNames", "externalNetwork", "publishPorts", "processes", "deployCommands"]);
+const FIELDS = new Set(["$schema", "extensions", "workspace", "build", "framework", "deployment", "serverEntry", "runtimeFiles", "angularProject", "mongodbMode", "node", "name", "packageManager", "packageManagerVersion", "scripts", "port", "outputDirectory", "staticRouting", "basePath", "services", "additionalServices", "serviceNames", "externalNetwork", "publishPorts", "hostUser", "siloImage", "processes", "deployCommands"]);
 export const safeRelativePath = (value: unknown): value is string => typeof value === "string" && RELATIVE_PATH.test(value);
 const isObject = (value: unknown): value is Record<string, unknown> => value !== null && typeof value === "object" && !Array.isArray(value);
 export async function exists(path: string): Promise<boolean> {
@@ -181,12 +181,15 @@ export function parseConfig(data: unknown, root: string): ShipConfig {
   if (externalNetwork !== null && !(typeof externalNetwork === "string" && NETWORK_NAME.test(externalNetwork)) &&
     !(Array.isArray(externalNetwork) && externalNetwork.length > 0 && new Set(externalNetwork).size === externalNetwork.length && externalNetwork.every(n => typeof n === "string" && NETWORK_NAME.test(n)))) problems.push("externalNetwork must be a Docker network name or a nonempty list of unique names.");
   if (data.publishPorts !== undefined && typeof data.publishPorts !== "boolean") problems.push("publishPorts must be boolean.");
+  if (data.hostUser !== undefined && typeof data.hostUser !== "boolean") problems.push("hostUser must be boolean.");
+  const siloImage = data.siloImage ?? "standard";
+  if (siloImage !== "standard" && siloImage !== "distroless") problems.push("siloImage must be standard or distroless.");
   if (problems.length) throw new ConfigError(problems);
   return { extensions, workspace, build, framework, deployment: deployment as ShipConfig["deployment"], serverEntry: serverEntry as string | null,
     runtimeFiles: runtimeFiles as string[], angularProject: angularProject as string | null, mongodbMode: mongodbMode as ShipConfig["mongodbMode"],
     node, name, packageManager: packageManager as ShipConfig["packageManager"], packageManagerVersion,
     scripts, outputDirectory: outputDirectory as string | null, staticRouting: staticRouting as ShipConfig["staticRouting"], basePath: basePath as string, port: port as number, services, additionalServices,
-    serviceNames, externalNetwork: externalNetwork as string | string[] | null, publishPorts: data.publishPorts === true, processes, deployCommands };
+    serviceNames, externalNetwork: externalNetwork as string | string[] | null, publishPorts: data.publishPorts === true, hostUser: data.hostUser !== false, siloImage: siloImage as ShipConfig["siloImage"], processes, deployCommands };
 }
 
 export async function readConfig(root: string): Promise<ShipConfig> {

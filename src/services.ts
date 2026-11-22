@@ -1,3 +1,4 @@
+import { portableServices } from "./portable-services.js";
 import { frozenMap } from "./collections.js";
 import { NAME } from "./config-rules.js";
 import { ConfigError } from "./errors.js";
@@ -52,4 +53,4 @@ export const mongodb: ServiceDefinition = {
     [`${c.envPrefix}MONGODB_ROOT_PASSWORD`]: "" }),
   databaseShell: () => ["sh", "-c", 'exec mongosh --host 127.0.0.1 --username "$SHIP_MONGO_USER" --password "$SHIP_MONGO_PASSWORD" --authenticationDatabase "$MONGO_INITDB_DATABASE" "$MONGO_INITDB_DATABASE"'],
 };
-export const builtinServices: ReadonlyMap<string, ServiceDefinition> = frozenMap(new Map([postgres, redis, mongodb].map(service => [service.key, Object.freeze({ ...service, volumes: Object.freeze([...(service.volumes ?? [])]) })])));
+export const builtinServices: ReadonlyMap<string, ServiceDefinition> = frozenMap(new Map([postgres, redis, mongodb, ...portableServices].map(service => [service.key, Object.freeze({ ...service, volumes: Object.freeze([...(service.volumes ?? [])]) })])));

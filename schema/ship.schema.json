@@ -233,12 +233,59 @@
         "database": {
           "enum": [
             "postgres",
-            "mongodb"
+            "mongodb",
+            "mysql",
+            "mariadb",
+            "sqlserver"
           ]
         },
         "cache": {
           "enum": [
-            "redis"
+            "redis",
+            "valkey",
+            "memcached"
+          ]
+        },
+        "storage": {
+          "enum": [
+            "seaweedfs",
+            "garage",
+            "rustfs",
+            "silo"
+          ]
+        },
+        "search": {
+          "enum": [
+            "meilisearch",
+            "elasticsearch",
+            "typesense"
+          ]
+        },
+        "mail": {
+          "enum": [
+            "mailpit"
+          ]
+        },
+        "testing": {
+          "enum": [
+            "playwright",
+            "cypress",
+            "selenium"
+          ]
+        },
+        "broadcasting": {
+          "enum": [
+            "centrifugo"
+          ]
+        },
+        "broker": {
+          "enum": [
+            "rabbitmq"
+          ]
+        },
+        "queue-dashboard": {
+          "enum": [
+            "bull-board"
           ]
         }
       },
@@ -254,14 +301,40 @@
           "group": {
             "enum": [
               "database",
-              "cache"
+              "cache",
+              "storage",
+              "search",
+              "mail",
+              "testing",
+              "broadcasting",
+              "broker",
+              "queue-dashboard"
             ]
           },
           "service": {
             "enum": [
               "postgres",
               "redis",
-              "mongodb"
+              "mongodb",
+              "mysql",
+              "mariadb",
+              "sqlserver",
+              "valkey",
+              "memcached",
+              "seaweedfs",
+              "garage",
+              "rustfs",
+              "silo",
+              "meilisearch",
+              "elasticsearch",
+              "typesense",
+              "mailpit",
+              "playwright",
+              "cypress",
+              "centrifugo",
+              "rabbitmq",
+              "selenium",
+              "bull-board"
             ]
           },
           "name": {
@@ -291,7 +364,10 @@
                 "service": {
                   "enum": [
                     "postgres",
-                    "mongodb"
+                    "mongodb",
+                    "mysql",
+                    "mariadb",
+                    "sqlserver"
                   ]
                 }
               }
@@ -312,7 +388,163 @@
               "properties": {
                 "service": {
                   "enum": [
-                    "redis"
+                    "redis",
+                    "valkey",
+                    "memcached"
+                  ]
+                }
+              }
+            }
+          },
+          {
+            "if": {
+              "properties": {
+                "group": {
+                  "const": "storage"
+                }
+              },
+              "required": [
+                "group"
+              ]
+            },
+            "then": {
+              "properties": {
+                "service": {
+                  "enum": [
+                    "seaweedfs",
+                    "garage",
+                    "rustfs",
+                    "silo"
+                  ]
+                }
+              }
+            }
+          },
+          {
+            "if": {
+              "properties": {
+                "group": {
+                  "const": "search"
+                }
+              },
+              "required": [
+                "group"
+              ]
+            },
+            "then": {
+              "properties": {
+                "service": {
+                  "enum": [
+                    "meilisearch",
+                    "elasticsearch",
+                    "typesense"
+                  ]
+                }
+              }
+            }
+          },
+          {
+            "if": {
+              "properties": {
+                "group": {
+                  "const": "mail"
+                }
+              },
+              "required": [
+                "group"
+              ]
+            },
+            "then": {
+              "properties": {
+                "service": {
+                  "enum": [
+                    "mailpit"
+                  ]
+                }
+              }
+            }
+          },
+          {
+            "if": {
+              "properties": {
+                "group": {
+                  "const": "testing"
+                }
+              },
+              "required": [
+                "group"
+              ]
+            },
+            "then": {
+              "properties": {
+                "service": {
+                  "enum": [
+                    "playwright",
+                    "cypress",
+                    "selenium"
+                  ]
+                }
+              }
+            }
+          },
+          {
+            "if": {
+              "properties": {
+                "group": {
+                  "const": "broadcasting"
+                }
+              },
+              "required": [
+                "group"
+              ]
+            },
+            "then": {
+              "properties": {
+                "service": {
+                  "enum": [
+                    "centrifugo"
+                  ]
+                }
+              }
+            }
+          },
+          {
+            "if": {
+              "properties": {
+                "group": {
+                  "const": "broker"
+                }
+              },
+              "required": [
+                "group"
+              ]
+            },
+            "then": {
+              "properties": {
+                "service": {
+                  "enum": [
+                    "rabbitmq"
+                  ]
+                }
+              }
+            }
+          },
+          {
+            "if": {
+              "properties": {
+                "group": {
+                  "const": "queue-dashboard"
+                }
+              },
+              "required": [
+                "group"
+              ]
+            },
+            "then": {
+              "properties": {
+                "service": {
+                  "enum": [
+                    "bull-board"
                   ]
                 }
               }
@@ -358,6 +590,18 @@
         }
       ],
       "default": null
+    },
+    "hostUser": {
+      "type": "boolean",
+      "default": true,
+      "description": "Use the host UID/GID for development files on Linux."
+    },
+    "siloImage": {
+      "enum": [
+        "standard",
+        "distroless"
+      ],
+      "default": "standard"
     },
     "publishPorts": {
       "type": "boolean",

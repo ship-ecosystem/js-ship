@@ -77,6 +77,9 @@ export async function renderTemplates(config: ShipConfig, workspacePackages: rea
   if (Object.values(config.services).includes("mongodb") || config.additionalServices.some(s => s.service === "mongodb")) {
     for (const name of ["Dockerfile", "entrypoint.sh", "bootstrap.sh", "bootstrap.js", "health.js", "app-user.js"]) files[`mongodb/${name}`] = (await readFile(new URL(`../templates/mongodb/${name}`, import.meta.url), "utf8")).replace("@MONGODB_IMAGE@", IMAGES.mongo);
   }
+  if (Object.values(config.services).includes("garage") || config.additionalServices.some(s => s.service === "garage")) {
+    for (const name of ["Dockerfile", "garage.toml"]) files[`garage/${name}`] = await readFile(new URL(`../templates/garage/${name}`, import.meta.url), "utf8");
+  }
   if (plan.kind === "static") {
     const fallback = plan.routing === "spa" ? `${config.basePath}${plan.spaFallback ?? "index.html"}` : "=404";
     const baseRedirect = config.basePath === "/" ? "" : `    location = ${config.basePath.slice(0, -1)} { return 308 ${config.basePath}; }\n    location / { return 404; }\n`;
