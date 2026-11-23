@@ -32,9 +32,10 @@ not its volume. Databases and stateful infrastructure persist in both environmen
 `ship db analytics` opens the named database client. Infrastructure ports are not
 publicly exposed by default in production; HTTP services join external networks.
 
-The portable server definitions and probes follow PHP Ship. PostgreSQL and MongoDB
-retain js-ship's existing `DB_NAME`/`DB_USER` and `MONGODB_*` settings. MySQL, MariaDB
-and SQL Server use `DB_DATABASE`, `DB_USERNAME`, `DB_PASSWORD` and a separate
+The portable database settings follow the shared spec. PostgreSQL uses
+`DB_DATABASE`, `DB_USERNAME` and `DB_PASSWORD`. Existing `DB_NAME` and `DB_USER`
+settings remain aliases. MongoDB uses `MONGODB_USERNAME` and accepts the previous
+`MONGODB_USER` alias. MySQL, MariaDB and SQL Server use the same `DB_*` settings and a separate
 `DB_ROOT_PASSWORD`; the root credential is not injected into the app. Client
 configuration is application-owned. Never construct a database URL by concatenating
 unescaped credentials; use your client's structured connection options.
@@ -113,3 +114,7 @@ over a PostgreSQL 17 database.
 The Redis default is 8.10.3. Back up existing persistent Redis data before
 upgrading from Redis 7 and verify the application against Redis 8 before
 switching over.
+
+Ship builds PostgreSQL, MySQL, Typesense and Cypress from their pinned upstream
+versions and applies distribution package updates. The rebuilt production service
+images ship in portable releases.

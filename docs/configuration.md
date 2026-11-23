@@ -57,7 +57,8 @@ Applications connecting to hosted or independently managed databases can follow
 
 ## Tooling integration
 
-The npm tarball includes the schema and exports it as `js-ship/schema.json`.
+The npm tarball includes the shared configuration schema and exports it as
+`js-ship/schema.json`. Use `shipConfigSchema` for the JavaScript editor profile.
 Node tooling can resolve its installed file without a network request:
 
 ```js

@@ -30,7 +30,7 @@ test('catalog drives package engines, Docker selections and generated guard poli
     const config = parseConfig({ node: major, services: { database: 'postgres', cache: 'redis' } }, '/app');
     const model = buildCompose(config, '/app', 'production');
     assert.equal(model.services.app.build.args.NODE_IMAGE, IMAGES[`node${major}`]);
-    assert.equal(model.services.postgres.image, IMAGES.postgres);
+    assert.ok(model.services.postgres.build.dockerfile_inline.startsWith(`FROM ${IMAGES.postgres}\n`));
     assert.equal(model.services.redis.image, IMAGES.redis);
   }
   const cfg = parseConfig({ services: { database: 'mongodb' } }, '/app');

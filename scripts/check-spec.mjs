@@ -6,6 +6,12 @@ for (const name of ['ship.schema.json', 'ship-release.schema.json']) {
  if (!local.equals(canonical)) throw new Error(`Canonical schema drift: ${name}. Review the spec change and refresh the unmodified copy.`);
  console.log(`Canonical schema matches: ${name}`);
 }
+const serviceEnv = 'service-environment.json';
+const [localEnvironment, canonicalEnvironment] = await Promise.all([
+  readFile(new URL(`../schema/canonical/${serviceEnv}`, import.meta.url)),
+  readFile(resolve(upstream, 'contracts', serviceEnv)),
+]);
+if (!localEnvironment.equals(canonicalEnvironment)) throw new Error('Shared service environment contract drift.');
 
 const [localChecker, upstreamChecker] = await Promise.all([readFile(new URL('./spec/check-release.mjs', import.meta.url), 'utf8'), readFile(resolve(upstream, 'tools/check-release.mjs'), 'utf8')]);
 const adapted = upstreamChecker.replace('#!/usr/bin/env node\n', '#!/usr/bin/env node\n// Adapted from ship-ecosystem/spec be4cc80; only the schema location differs.\n').replace("join(root, 'schemas', 'ship-release.schema.json')", "join(root, '..', 'schema', 'canonical', 'ship-release.schema.json')");

@@ -86,7 +86,7 @@ PHP and Python implementation files were not changed.
 
 Compatibility choices preserve existing js-ship projects: production Compose names
 retain `-production`, existing PostgreSQL/Redis/MongoDB version families and volume
-identities remain in place, and PostgreSQL retains its `DB_NAME`/`DB_USER` names.
+identities remain in place, and PostgreSQL accepts its earlier `DB_NAME`/`DB_USER` names as aliases.
 These avoid silently moving or major-upgrading persisted data. They are documented
 producer compatibility differences; adopting new database majors or renaming data
 is a separate migration, not an automatic consequence of ecosystem alignment.

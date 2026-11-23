@@ -53,7 +53,7 @@ for (const manager of ['npm', 'pnpm', 'yarn']) {
       assert.equal(command.at(-1), '/');
       const dockerfile = await readFile(join(root, 'ship/Dockerfile'), 'utf8');
       assert.ok(!/@[A-Z_]+@/.test(dockerfile));
-      assert.match(dockerfile, /nginx-unprivileged/);
+      assert.match(dockerfile, /nginx=1\.30\.8-r1/);
       assert.match(dockerfile, /USER 101:101/);
       assert.match(dockerfile, /npm install --global --engine-strict/);
       assert.match(dockerfile, manager === 'yarn' ? /COPY \. \./ : new RegExp(`COPY package.json ${({ npm: 'package-lock.json', pnpm: 'pnpm-lock.yaml', yarn: 'yarn.lock' })[manager]}`));

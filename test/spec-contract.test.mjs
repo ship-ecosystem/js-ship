@@ -44,7 +44,7 @@ const runner = async args => {
  return imageInspection(args) ?? '';
 };
 test('release folders follow the canonical schema, pin registry images and omit secrets on request', async t => {
- const { root, config } = await releaseFixture(t, { services: { database: 'postgres' }, externalNetwork: ['z-proxy', 'a-proxy'], deployCommands: [['node', 'migrate.mjs']], processes: { realtime: { command: ['node', 'socket.mjs'], http: { port: 4000, role: 'websocket', health: '/ready', urlSetting: 'SOCKET_URL' } } } });
+ const { root, config } = await releaseFixture(t, { services: { database: 'postgres', cache: 'redis' }, externalNetwork: ['z-proxy', 'a-proxy'], deployCommands: [['node', 'migrate.mjs']], processes: { realtime: { command: ['node', 'socket.mjs'], http: { port: 4000, role: 'websocket', health: '/ready', urlSetting: 'SOCKET_URL' } } } });
  await writeFile(join(root, '.env.production'), 'DB_PASSWORD=unique-credential\nSOCKET_URL=https://example.com\n');
  const output = await assembleRelease(root, config, 'contract', runner, undefined, { noEnv: true });
  const release = JSON.parse(await readFile(join(output, 'release.json')));
@@ -55,13 +55,14 @@ test('release folders follow the canonical schema, pin registry images and omit 
  assert.deepEqual(release.env.keys, ['DB_PASSWORD', 'SOCKET_URL']);
  assert.deepEqual(release.env.required, ['DB_PASSWORD']);
  assert.deepEqual(release.requires.networks, ['a-proxy', 'z-proxy']);
- assert.equal(release.images.length, 1);
+ assert.equal(release.images.length, 2);
+ assert.ok(release.images.some(image => image.ref === release.services.postgres.image));
  assert.equal(release.pulledImages.length, 1);
  assert.match(release.pulledImages[0].ref, /@sha256:[a-f0-9]{64}$/);
- assert.equal(release.services.postgres.image, release.pulledImages[0].ref);
+ assert.equal(release.services.redis.image, release.pulledImages[0].ref);
  assert.equal(release.services.realtime.role, 'process');
  assert.equal(release.services.realtime.healthcheck, true);
- assert.deepEqual(release.deploy.needs, ['postgres']);
+ assert.deepEqual(release.deploy.needs, ['postgres', 'redis']);
  assert.equal(release.http.find(h => h.service === 'realtime').urlSetting, 'SOCKET_URL');
  assert.doesNotMatch(JSON.stringify(release), /unique-credential|https:\/\/example/);
  assert.match(await readFile(join(output, 'deploy-commands.sh'), 'utf8'), /run --rm --no-deps -T/);

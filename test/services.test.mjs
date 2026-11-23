@@ -1,8 +1,20 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
+import { readFile } from 'node:fs/promises';
 import { builtinServices } from '../dist/services.js';
 import { parseConfig } from '../dist/config.js';
 import { buildCompose } from '../dist/compose.js';
+
+test('shared services expose the canonical connection variables', async () => {
+ const contract = JSON.parse(await readFile(new URL('../schema/canonical/service-environment.json', import.meta.url), 'utf8'));
+ for (const [key, variables] of Object.entries(contract)) {
+  const definition = builtinServices.get(key);
+  assert.ok(definition, key);
+  const config = parseConfig({ services: { [definition.group]: key } }, '/project');
+  const model = buildCompose(config, '/project', 'development');
+  for (const variable of variables) assert.ok(Object.hasOwn(model.services.app.environment, variable), `${key} ${variable}`);
+ }
+});
 
 for (const [key, definition] of builtinServices) test(`${key}: named resources, production lifecycle and HTTP networks`, () => {
  const config = parseConfig({ services: { [definition.group]: key, ...(key === 'bull-board' ? { cache: 'redis' } : {}) }, externalNetwork: ['proxy', 'private-proxy'] }, '/project');

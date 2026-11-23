@@ -39,6 +39,11 @@ function portable(key: string): ServiceDefinition {
       if (key === "playwright") result.command = ["npx", "-y", `playwright@${SERVICE_IMAGES.playwright.match(/:v([0-9.]+)-/)![1]}`, "run-server", "--host", "0.0.0.0", "--port", "3000"];
       if (key === "garage") result.build = { context: resolve(c.projectRoot ?? ".", "ship/garage"), dockerfile: "Dockerfile", args: { GARAGE_RPC_PUBLIC_ADDR: `${c.serviceName}:3901` } };
       if (key === "silo" && c.config?.siloImage === "distroless") result.image = SERVICE_IMAGES.silodistroless;
+      const upgrade = packageUpgrades[key];
+      if (upgrade) {
+        result.build = { context: resolve(c.projectRoot ?? "."), dockerfile_inline: `FROM ${result.image}\nRUN ${upgrade}\n` };
+        delete result.image;
+      }
       if (key === "centrifugo") {
         const cache = c.config?.services.cache;
         if (cache && ["redis", "valkey"].includes(cache)) {
@@ -69,6 +74,7 @@ function portable(key: string): ServiceDefinition {
       // Never hand database admin credentials to the app via its env_file.
       if (data.group === "database") env[`${c.envPrefix}DB_ROOT_PASSWORD`] = "";
       if (key === "playwright") env.PLAYWRIGHT_BASE_URL = appUrl(c);
+      if (key === "valkey") env[`${c.envPrefix}REDIS_URL`] = `redis://${c.serviceName}:6379/0`;
       if (key === "centrifugo") {
         delete env.VITE_CENTRIFUGO_URL;
         if (c.environment === "development") env[publicUrlSetting(c)] = `ws://localhost:${c.setting("CENTRIFUGO_PORT", "8001")}/connection/websocket`;
@@ -79,6 +85,12 @@ function portable(key: string): ServiceDefinition {
     ...(http.length ? { http: (c: ServiceContext) => http.map(entry => ({ ...entry, ...(key === "centrifugo" ? { urlSetting: publicUrlSetting(c) } : {}) })) } : {}),
   };
 }
+const cypressDebian = "apt-get -o Dir::Etc::sourcelist=/etc/apt/sources.list.d/debian.sources -o Dir::Etc::sourceparts=-";
+const packageUpgrades: Record<string, string> = {
+  typesense: "apt-get update && DEBIAN_FRONTEND=noninteractive apt-get upgrade -y && rm -rf /var/lib/apt/lists/*",
+  cypress: `${cypressDebian} update && DEBIAN_FRONTEND=noninteractive ${cypressDebian} upgrade -y && rm -rf /var/lib/apt/lists/*`,
+  mysql: "microdnf --disablerepo='mysql*' -y upgrade && microdnf clean all",
+};
 function publicUrlSetting(c: ServiceContext): string {
   const framework = c.config?.framework;
   const prefix = framework === "next" ? "NEXT_PUBLIC_" : framework === "nuxt" ? "NUXT_PUBLIC_" : framework === "gatsby" ? "GATSBY_" : ["astro", "sveltekit"].includes(framework ?? "") ? "PUBLIC_" : "VITE_";
@@ -89,7 +101,7 @@ const selenium: ServiceDefinition = {
   key: "selenium", label: "Selenium WebDriver (Chromium)", group: "testing", developmentOnly: true,
   compose: () => ({ image: SERVICE_IMAGES.selenium, shm_size: "2gb", init: true,
     healthcheck: { test: ["CMD-SHELL", "/opt/bin/check-grid.sh --host 0.0.0.0 --port 4444"], interval: "5s", timeout: "10s", retries: 20, start_period: "20s" } }),
-  appEnvironment: c => c.environment === "development" ? { SELENIUM_REMOTE_URL: `http://${c.serviceName}:4444`, WEBDRIVER_BASE_URL: appUrl(c) } : {},
+  appEnvironment: c => c.environment === "development" ? { SELENIUM_REMOTE_URL: `http://${c.serviceName}:4444/wd/hub`, WEBDRIVER_BASE_URL: appUrl(c) } : {},
 };
 const bullBoard: ServiceDefinition = {
   key: "bull-board", label: "Bull Board queue dashboard", group: "queue-dashboard",

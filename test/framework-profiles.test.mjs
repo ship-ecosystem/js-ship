@@ -55,7 +55,7 @@ for (const manager of ['npm', 'pnpm', 'yarn']) for (const framework of Object.ke
       assert.equal(model.services.app.command[1], plan.entrypoint);
       assert.ok(dockerfile.indexOf(manager === 'yarn' ? "'focus'" : "'prune'") < dockerfile.lastIndexOf('RUN node ship/prepare-output.mjs'));
     } else {
-      assert.ok(dockerfile.includes('nginx-unprivileged'));
+      assert.ok(dockerfile.includes('nginx=1.30.8-r1'));
       assert.equal(model.services.app.environment, undefined);
     }
     if (framework === 'next' && mode === 'node') assert.equal(model.services.app.environment.HOSTNAME, '0.0.0.0');

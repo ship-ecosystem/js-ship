@@ -50,6 +50,8 @@ test('renaming a database changes injected hosts without moving its volume', () 
     additionalServices: [{ group: 'database', service: 'postgres', name: 'analytics' }] }), '/project', 'development');
   assert.equal(model.services.app.environment.DB_HOST, 'database');
   assert.equal(model.services.app.environment.ANALYTICS_DB_HOST, 'postgres-analytics');
+  assert.equal(model.services.app.environment.ANALYTICS_DB_USERNAME, '${ANALYTICS_DB_USERNAME:-${ANALYTICS_DB_USER:-ship}}');
+  assert.equal(model.services.app.environment.ANALYTICS_DB_USER, model.services.app.environment.ANALYTICS_DB_USERNAME);
   assert.deepEqual(model.services.database.volumes, ['postgres_data:/var/lib/postgresql']);
   assert.equal(model.services.database.ports, undefined);
   assert.match(model.services.app.ports[0], /^127\.0\.0\.1:/);
@@ -166,7 +168,7 @@ test('unsafe release tags are rejected', () => {
 });
 test('release exports each image once, hashes archives and preserves existing releases', async t => {
   const root = await project(t);
-  const cfg = await initProject(root, { database: 'postgres' });
+  const cfg = await initProject(root, { database: 'postgres', cache: 'redis' });
   cfg.processes.worker = ['node', 'worker.js'];
   await writeFile(join(root, '.env.production'), 'DB_PASSWORD=unique-production-password\n');
   const calls = [];
@@ -177,14 +179,14 @@ test('release exports each image once, hashes archives and preserves existing re
   };
   const destination = await assembleRelease(root, cfg, 'v1', runner);
   const manifest = JSON.parse(await readFile(join(destination, 'release.json'), 'utf8'));
-  assert.equal(manifest.images.length, 1);
+  assert.equal(manifest.images.length, 2);
   assert.equal(manifest.pulledImages.length, 1);
   const app = manifest.images.find(item => item.services.includes('app'));
   assert.deepEqual(app.services, ['app', 'worker']);
   for (const entry of manifest.images) assert.equal(entry.sha256, createHash('sha256').update(await readFile(join(destination, entry.file))).digest('hex'));
   assert.equal(calls.filter(args => args.includes('build')).length, 1);
   const pull = calls.find(args => args.includes('pull') && !args.includes('build'));
-  assert.equal(pull.at(-1), 'postgres');
+  assert.equal(pull.at(-1), 'redis');
   assert.ok(!JSON.stringify(await readFile(join(destination, 'docker-compose.yml'), 'utf8')).includes(root));
   if (process.platform !== 'win32') assert.equal((await stat(join(destination, '.env'))).mode & 0o777, 0o600);
   const previousCalls = calls.length;

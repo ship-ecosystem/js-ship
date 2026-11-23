@@ -45,8 +45,8 @@ test('generic Node development, database shell and source-free production releas
   destination = await mkdtemp(join(tmpdir(), 'ship-js-portable-'));
   await cp(join(root, 'dist/ship/smoke'), destination, { recursive: true });
   const manifest = JSON.parse(await readFile(join(destination, 'release.json'), 'utf8'));
-  assert.equal(manifest.images.length, 1);
-  assert.equal(manifest.pulledImages.length, 2);
+  assert.equal(manifest.images.length, 2);
+  assert.equal(manifest.pulledImages.length, 1);
   const { check } = await import("../../scripts/spec/check-release.mjs");
   assert.deepEqual(check(destination), []);
   // Hide the original source checkout: the artifact must be sufficient by itself.

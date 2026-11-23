@@ -1,10 +1,11 @@
 # Ship ecosystem compatibility
 
 The source of truth is [ship-ecosystem/spec](https://github.com/ship-ecosystem/spec).
-`schema/canonical/` contains unmodified offline copies of its configuration and
-release schemas. `schema/ship.schema.json` is a JavaScript editor profile with
-stricter framework, service and runtime validation; it does not claim the
-canonical schema's identity. Run `node scripts/check-spec.mjs PATH_TO_SPEC` locally
+`schema/canonical/` contains unmodified offline copies of its configuration
+schema, release schema and service environment contract. The npm export
+`js-ship/schema.json` points to the canonical configuration schema.
+`ship init` generates a JavaScript editor profile in the project with additional
+framework, service and runtime validation. Run `node scripts/check-spec.mjs PATH_TO_SPEC` locally
 to check drift. JavaScript-specific properties are registered in the shared spec.
 Changes to the local spec repository must be published separately before remote
 editors or other ecosystem packages can consume them.

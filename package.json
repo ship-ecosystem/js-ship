@@ -24,7 +24,7 @@
       "types": "./dist/index.d.ts",
       "import": "./dist/index.js"
     },
-    "./schema.json": "./schema/ship.schema.json"
+    "./schema.json": "./schema/canonical/ship.schema.json"
   },
   "files": [
     "dist",

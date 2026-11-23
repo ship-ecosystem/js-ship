@@ -41,7 +41,19 @@ export async function renderTemplates(config: ShipConfig, workspacePackages: rea
   const setup = `ARG SHIP_PACKAGE_MANAGER_VERSION\nRUN if command -v corepack >/dev/null 2>&1; then corepack disable; fi${config.packageManager === "yarn" ? "\nRUN rm -f /usr/local/bin/yarn /usr/local/bin/yarnpkg" : ""}\nRUN test -n "$SHIP_PACKAGE_MANAGER_VERSION" && npm install --global --engine-strict "${distribution}@$SHIP_PACKAGE_MANAGER_VERSION"${config.packageManager === "pnpm" ? " --allow-scripts=pnpm" : ""} --no-audit --no-fund\nENV CI=true${config.packageManager === "pnpm" ? "\nENV PNPM_CONFIG_VERIFY_DEPS_BEFORE_RUN=false" : config.packageManager === "yarn" ? "\nENV YARN_NODE_LINKER=node-modules YARN_IGNORE_PATH=true YARN_ENABLE_GLOBAL_CACHE=true YARN_INSTALL_STATE_PATH=/app/node_modules/.yarn-install-state.gz" : ""}`;
   const production = plan.kind === "node"
     ? `FROM base AS production\nENV NODE_ENV=production\nCOPY --from=builder --chown=node:node ${plan.runtime && plan.runtime !== "project" ? "/opt/ship-runtime" : "/app"} /app\nCOPY ship/app-entrypoint.mjs /usr/local/bin/ship-app-entrypoint.mjs\n${config.workspace ? `WORKDIR ${appPath}\n` : ""}USER node\nENTRYPOINT ["node", "/usr/local/bin/ship-app-entrypoint.mjs"]`
-    : `FROM ${IMAGES.nginx} AS production\nCOPY ship/nginx.conf /etc/nginx/conf.d/default.conf\nCOPY --from=builder ${appPath}/${plan.outputDirectory}/ /usr/share/nginx/html${config.basePath}\nUSER 101:101\nEXPOSE 8080`;
+    : [
+      `FROM ${IMAGES.nginx} AS production`,
+      "RUN apk upgrade --no-cache && apk add --no-cache --repository https://nginx.org/packages/alpine/v3.24/main"
+        + " nginx=1.30.8-r1 nginx-module-acme=1.30.8.0.4.2-r1 nginx-module-geoip=1.30.8-r1"
+        + " nginx-module-image-filter=1.30.8-r1 nginx-module-njs=1.30.8.1.0.2-r1 nginx-module-xslt=1.30.8-r1",
+      "RUN sed -i -e '/^user /d' -e 's@/run/nginx.pid@/tmp/nginx.pid@' "
+        + "-e 's@^http {@http { client_body_temp_path /tmp/client_temp; proxy_temp_path /tmp/proxy_temp;"
+        + " fastcgi_temp_path /tmp/fastcgi_temp; uwsgi_temp_path /tmp/uwsgi_temp; scgi_temp_path /tmp/scgi_temp;@' /etc/nginx/nginx.conf",
+      "COPY ship/nginx.conf /etc/nginx/conf.d/default.conf",
+      `COPY --from=builder ${appPath}/${plan.outputDirectory}/ /usr/share/nginx/html${config.basePath}`,
+      "USER 101:101",
+      "EXPOSE 8080",
+    ].join("\n");
   const source = await readFile(new URL("../templates/Dockerfile", import.meta.url), "utf8");
   const extra = adapter.buildArguments?.(config) ?? (plan.kind === "static" && builtinAdapters.has(config.framework) ? ["--base", config.basePath] : []);
   const extraText = extra.length ? `${config.packageManager === "npm" ? " --" : ""} ${shell(extra)}` : "";

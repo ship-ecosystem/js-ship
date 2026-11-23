@@ -206,7 +206,7 @@ Processes start in production, not automatically during development.
 `name` is a stable identity. Existing js-ship production project names retain the
 `-production` suffix; do not change a deployed project's name without migrating its
 volumes. Named instance variables use uppercase prefixes such as `ANALYTICS_`.
-PostgreSQL uses `DB_NAME`/`DB_USER`; additional provider settings are documented in
+PostgreSQL uses `DB_DATABASE`/`DB_USERNAME`; additional provider settings are documented in
 [services](docs/services.md). Secrets belong in environment files, not ship.json.
 
 The local editor profile is generated from supported JS capabilities; unmodified

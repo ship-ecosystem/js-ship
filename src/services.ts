@@ -24,30 +24,39 @@ export function serviceContext(environment: Environment, key: string, instance: 
 const healthcheck = (test: string[]) => ({ test, interval: "5s", timeout: "5s", retries: 20, start_period: "10s" });
 export const postgres: ServiceDefinition = {
   key: "postgres", label: "PostgreSQL", group: "database", volumes: ["data"],
-  compose: c => ({ image: IMAGES.postgres, environment: {
-    POSTGRES_DB: c.setting("DB_NAME", "ship"), POSTGRES_USER: c.setting("DB_USER", "ship"), POSTGRES_PASSWORD: c.credential("DB_PASSWORD", "shipsecret"),
+  compose: c => ({ build: { context: resolve(c.projectRoot ?? "."), dockerfile_inline: `FROM ${IMAGES.postgres}\nRUN apk upgrade --no-cache\n` }, environment: {
+    POSTGRES_DB: c.setting("DB_DATABASE", c.setting("DB_NAME", "ship")), POSTGRES_USER: c.setting("DB_USERNAME", c.setting("DB_USER", "ship")), POSTGRES_PASSWORD: c.credential("DB_PASSWORD", "shipsecret"),
   }, volumes: [`${c.resourceName}_data:/var/lib/postgresql`],
   healthcheck: healthcheck(["CMD-SHELL", 'pg_isready -h 127.0.0.1 -U "$${POSTGRES_USER}" -d "$${POSTGRES_DB}"']), restart: "unless-stopped" }),
-  appEnvironment: c => ({ [`${c.envPrefix}DB_HOST`]: c.serviceName, [`${c.envPrefix}DB_PORT`]: "5432", [`${c.envPrefix}DB_NAME`]: c.setting("DB_NAME", "ship"),
-    [`${c.envPrefix}DB_USER`]: c.setting("DB_USER", "ship"), [`${c.envPrefix}DB_PASSWORD`]: c.credential("DB_PASSWORD", "shipsecret") }),
+  appEnvironment: c => {
+    const database = c.setting("DB_DATABASE", c.setting("DB_NAME", "ship"));
+    const username = c.setting("DB_USERNAME", c.setting("DB_USER", "ship"));
+    return { [`${c.envPrefix}DB_HOST`]: c.serviceName, [`${c.envPrefix}DB_PORT`]: "5432",
+      [`${c.envPrefix}DB_DATABASE`]: database, [`${c.envPrefix}DB_USERNAME`]: username,
+      [`${c.envPrefix}DB_NAME`]: database, [`${c.envPrefix}DB_USER`]: username,
+      [`${c.envPrefix}DB_PASSWORD`]: c.credential("DB_PASSWORD", "shipsecret") };
+  },
   databaseShell: () => ["sh", "-c", 'exec psql -U "$POSTGRES_USER" -d "$POSTGRES_DB"'],
 };
 export const redis: ServiceDefinition = {
   key: "redis", label: "Redis", group: "cache", volumes: ["data"],
   compose: c => ({ image: IMAGES.redis, command: ["redis-server", "--appendonly", "yes"], volumes: [`${c.resourceName}_data:/data`],
     healthcheck: healthcheck(["CMD", "redis-cli", "ping"]), restart: "unless-stopped" }),
-  appEnvironment: c => ({ [`${c.envPrefix}REDIS_URL`]: `redis://${c.serviceName}:6379/0` }),
+  appEnvironment: c => ({ [`${c.envPrefix}REDIS_URL`]: `redis://${c.serviceName}:6379/0`,
+    [`${c.envPrefix}REDIS_HOST`]: c.serviceName, [`${c.envPrefix}REDIS_PORT`]: "6379" }),
 };
 export const mongodb: ServiceDefinition = {
   key: "mongodb", label: "MongoDB", group: "database", volumes: ["data", "config"],
   compose: c => ({ build: { context: resolve(c.projectRoot ?? "."), dockerfile: "ship/mongodb/Dockerfile" }, init: true,
     environment: { MONGO_INITDB_ROOT_USERNAME: c.setting("MONGODB_ROOT_USER", "shipadmin"), MONGO_INITDB_ROOT_PASSWORD: c.credential("MONGODB_ROOT_PASSWORD", "shiprootsecret"),
-      MONGO_INITDB_DATABASE: c.setting("MONGODB_DATABASE", "ship"), SHIP_MONGO_USER: c.setting("MONGODB_USER", "ship"), SHIP_MONGO_PASSWORD: c.credential("MONGODB_PASSWORD", "shipsecret"),
+      MONGO_INITDB_DATABASE: c.setting("MONGODB_DATABASE", "ship"), SHIP_MONGO_USER: c.setting("MONGODB_USERNAME", c.setting("MONGODB_USER", "ship")), SHIP_MONGO_PASSWORD: c.credential("MONGODB_PASSWORD", "shipsecret"),
       SHIP_MONGO_MODE: c.config?.mongodbMode ?? "replica-set", SHIP_MONGO_HOST: c.serviceName },
     volumes: [`${c.resourceName}_data:/data/db`, `${c.resourceName}_config:/data/configdb`], restart: "unless-stopped",
     healthcheck: { test: ["CMD", "mongosh", "--nodb", "--quiet", "/usr/local/share/ship-mongo-health.js"], interval: "3s", timeout: "10s", retries: 40, start_period: "30s" } }),
   appEnvironment: c => ({ [`${c.envPrefix}MONGODB_HOST`]: c.serviceName, [`${c.envPrefix}MONGODB_PORT`]: "27017",
-    [`${c.envPrefix}MONGODB_DATABASE`]: c.setting("MONGODB_DATABASE", "ship"), [`${c.envPrefix}MONGODB_USER`]: c.setting("MONGODB_USER", "ship"),
+    [`${c.envPrefix}MONGODB_DATABASE`]: c.setting("MONGODB_DATABASE", "ship"),
+    [`${c.envPrefix}MONGODB_USERNAME`]: c.setting("MONGODB_USERNAME", c.setting("MONGODB_USER", "ship")),
+    [`${c.envPrefix}MONGODB_USER`]: c.setting("MONGODB_USERNAME", c.setting("MONGODB_USER", "ship")),
     [`${c.envPrefix}MONGODB_PASSWORD`]: c.credential("MONGODB_PASSWORD", "shipsecret"), [`${c.envPrefix}MONGODB_REPLICA_SET`]: (c.config?.mongodbMode ?? "replica-set") === "replica-set" ? "rs0" : "",
     // Explicit empty overrides .env.production so the root password cannot leak via env_file.
     [`${c.envPrefix}MONGODB_ROOT_PASSWORD`]: "" }),

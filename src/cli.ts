@@ -190,7 +190,7 @@ async function main(argv: string[]): Promise<void> {
     const tool = selections(config, "development", root, registry).find(s => s.definition.group === "testing" && !s.context.envPrefix);
     if (!tool) throw new ConfigError(["Select a testing service with ship init or run your package's test script with ship npm/pnpm/yarn."]);
     const forwarded = args[0] === "--" ? args.slice(1) : args;
-    if (tool.definition.key === "cypress") await run([...prefix, "run", "--rm", "--no-deps", ...(!process.stdin.isTTY ? ["-T"] : []), "--entrypoint", "sh", tool.context.serviceName, "-c", 'set -eu; if [ ! -e /e2e/node_modules/cypress ]; then ln -s /usr/local/lib/node_modules/cypress /e2e/node_modules/cypress; fi; exec cypress run "$@"', "ship-cypress", ...forwarded], root);
+    if (tool.definition.key === "cypress") await run([...prefix, "run", "--build", "--rm", "--no-deps", ...(!process.stdin.isTTY ? ["-T"] : []), "--entrypoint", "sh", tool.context.serviceName, "-c", 'set -eu; if [ ! -e /e2e/node_modules/cypress ]; then ln -s /usr/local/lib/node_modules/cypress /e2e/node_modules/cypress; fi; exec cypress run "$@"', "ship-cypress", ...forwarded], root);
     else if (tool.definition.key === "playwright") await run(applicationCommand(app, [config.packageManager, "exec", ...(config.packageManager === "npm" ? ["--"] : []), "playwright", "test", ...forwarded]), root);
     else {
       const manifest = await readManifest(applicationRoot(config, root));
