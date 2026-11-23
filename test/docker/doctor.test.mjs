@@ -26,7 +26,7 @@ test('doctor: effective overrides, project scope, endpoint precedence and privat
   await writeFile(join(root, '.env'), `DIAGNOSTIC_PROJECT=${name}\nPRIVATE_VALUE=${marker}\n`);
   await writeFile(join(root, 'docker-compose.override.yml'), override);
   await writeFile(join(root, 'compose.override.yaml'), 'invalid: [this ignored file must not be parsed');
-  await run(['docker', 'run', '-d', '--pull', 'never', '--name', container, '--label', `com.docker.compose.project=${name}`, '--label', 'com.docker.compose.service=helper', IMAGES.node24, 'node', '-e', 'setInterval(()=>{},1000)'], root, { capture: true });
+  await run(['docker', 'run', '-d', '--name', container, '--label', `com.docker.compose.project=${name}`, '--label', 'com.docker.compose.service=helper', IMAGES.node24, 'node', '-e', 'setInterval(()=>{},1000)'], root, { capture: true });
   const before = await readdir(join(root, 'ship'));
   const calls = [];
   const runner = async (args, cwd, options) => { calls.push(args); return run(args, cwd, { ...options, env }); };

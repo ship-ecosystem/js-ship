@@ -14,6 +14,8 @@ const [localEnvironment, canonicalEnvironment] = await Promise.all([
 if (!localEnvironment.equals(canonicalEnvironment)) throw new Error('Shared service environment contract drift.');
 
 const [localChecker, upstreamChecker] = await Promise.all([readFile(new URL('./spec/check-release.mjs', import.meta.url), 'utf8'), readFile(resolve(upstream, 'tools/check-release.mjs'), 'utf8')]);
-const adapted = upstreamChecker.replace('#!/usr/bin/env node\n', '#!/usr/bin/env node\n// Adapted from ship-ecosystem/spec be4cc80; only the schema location differs.\n').replace("join(root, 'schemas', 'ship-release.schema.json')", "join(root, '..', 'schema', 'canonical', 'ship-release.schema.json')");
-if (localChecker !== adapted) throw new Error('Shared release checker drift; review and refresh the adapted copy.');
+const adapted = upstreamChecker.replaceAll('\r\n', '\n')
+  .replace('#!/usr/bin/env node\n', '#!/usr/bin/env node\n// Adapted from ship-ecosystem/spec be4cc80; only the schema location differs.\n')
+  .replace("join(root, 'schemas', 'ship-release.schema.json')", "join(root, '..', 'schema', 'canonical', 'ship-release.schema.json')");
+if (localChecker.replaceAll('\r\n', '\n') !== adapted) throw new Error('Shared release checker drift; review and refresh the adapted copy.');
 console.log('Shared release checker matches.');

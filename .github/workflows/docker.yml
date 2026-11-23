@@ -60,6 +60,9 @@ jobs:
       - name: Run isolated Docker suite
         timeout-minutes: 22
         shell: bash
+        env:
+          # Keep the disposable Elasticsearch node independent of the runner's disk watermark.
+          SHIP_TEST_LOW_DISK_ELASTIC: '1'
         run: node --test test/docker/${{ matrix.suite }}.test.mjs 2>&1 | tee docker-test.log
       - name: Show test output
         if: always()
