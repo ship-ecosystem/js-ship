@@ -11,7 +11,7 @@ import { serviceContext } from '../dist/services.js';
 import { initProject, projectProblems } from '../dist/init.js';
 import { composePrefix } from '../dist/project.js';
 import { productionProblems, parseEnv } from '../dist/production.js';
-import { assembleRelease, releaseModel, deployScript, validateTag } from '../dist/release.js';
+import { assembleRelease, interpolationMetadata, releaseModel, deployScript, validateTag } from '../dist/release.js';
 import { run } from '../dist/process.js';
 import { statusRecords, waitForStack } from '../dist/runtime.js';
 import { createServer } from 'node:http';
@@ -55,6 +55,19 @@ test('renaming a database changes injected hosts without moving its volume', () 
   assert.deepEqual(model.services.database.volumes, ['postgres_data:/var/lib/postgresql']);
   assert.equal(model.services.database.ports, undefined);
   assert.match(model.services.app.ports[0], /^127\.0\.0\.1:/);
+});
+test('init preserves legacy database values while emitting valid canonical defaults and release settings', async t => {
+  const root = await project(t);
+  await writeFile(join(root, '.env'), 'DB_NAME=old-database\nDB_USER=old-user\n');
+  const cfg = await initProject(root, { database: 'postgres' });
+  const work = parseEnv(await readFile(join(root, '.env'), 'utf8'));
+  assert.equal(work.DB_NAME, 'old-database');
+  assert.equal(work.DB_USER, 'old-user');
+  assert.equal(work.DB_DATABASE, '');
+  assert.equal(work.DB_USERNAME, '');
+  const production = buildCompose(cfg, root, 'production');
+  assert.deepEqual(interpolationMetadata(production).referenced.filter(name => ['DB_DATABASE', 'DB_NAME', 'DB_USER', 'DB_USERNAME'].includes(name)),
+    ['DB_DATABASE', 'DB_NAME', 'DB_USER', 'DB_USERNAME']);
 });
 test('unknown services, absent renames and final name collisions fail before Docker', () => {
   for (const data of [{ services: { database: 'unknown' } }, { serviceNames: { postgres: 'db' } },

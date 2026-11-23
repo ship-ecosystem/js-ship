@@ -13,6 +13,7 @@ import { ConfigError } from "./errors.js";
 import { adapterProductionProblems, parseEnv, productionProblems, productionWarnings } from "./production.js";
 import { buildContextProblems, buildSecretProblems } from "./build-environment.js";
 import { composePrefix } from "./project.js";
+import { composeVariables } from "./environment.js";
 
 // The installed manifest is authoritative for CLI and exported release metadata.
 export const VERSION: string = JSON.parse(readFileSync(new URL("../package.json", import.meta.url), "utf8")).version;
@@ -73,9 +74,9 @@ async function inspectImage(ref: string, root: string, runner: Runner): Promise<
 const sorted = (values: Iterable<string>): string[] => [...new Set(values)].sort();
 export function interpolationMetadata(model: ComposeModel) {
   const referenced: string[] = [], required: string[] = [];
-  for (const match of JSON.stringify(model).matchAll(/\$\$|\$\{([A-Za-z_][A-Za-z0-9_]*)([^}]*)\}|\$([A-Za-z_][A-Za-z0-9_]*)/g)) {
-    const key = match[1] ?? match[3];
-    if (key) { referenced.push(key); if (/^:?\?/.test(match[2] ?? "")) required.push(key); }
+  for (const variable of composeVariables(JSON.stringify(model))) {
+    referenced.push(variable.name);
+    if (variable.required) required.push(variable.name);
   }
   return { referenced: sorted(referenced), required: sorted(required) };
 }

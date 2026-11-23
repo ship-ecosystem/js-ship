@@ -4,12 +4,27 @@ import type { ComposeModel } from "./contracts.js";
 import { exists } from "./config.js";
 import { parseEnv } from "./production.js";
 
+export function* composeVariables(text: string) {
+  for (const match of text.matchAll(/\$\$|\$\{([A-Za-z_][A-Za-z0-9_]*)(:[+?-]|[+?-]|(?=\}))|\$([A-Za-z_][A-Za-z0-9_]*)/g)) {
+    const name = match[1] ?? match[3];
+    if (!name) continue;
+    const braced = match[1] !== undefined;
+    const start = match.index + match[0].length;
+    const end = text.indexOf("}", start);
+    if (braced && end < 0) continue;
+    const operation = match[2];
+    const fallback = operation === ":-" || operation === "-" ? text.slice(start, end) : "";
+    // An empty outer value lets Compose evaluate a nested legacy setting at runtime.
+    yield { name, braced, required: operation === ":?" || operation === "?", defaultValue: fallback.includes("${") ? "" : fallback };
+  }
+}
+
 /** Names and development defaults, never inferred from the host's environment. */
 export function environmentDefaults(model: ComposeModel): Record<string, string> {
   const values: Record<string, string> = {};
   function visit(value: unknown): void {
-    if (typeof value === "string") for (const match of value.matchAll(/\$\$|\$\{([A-Za-z_][A-Za-z0-9_]*)(?:(:-|-|:\?|\?)([^}]*))?\}/g)) {
-      if (match[1] && !Object.hasOwn(values, match[1])) values[match[1]] = match[2] === ":-" || match[2] === "-" ? match[3] ?? "" : "";
+    if (typeof value === "string") for (const variable of composeVariables(value)) {
+      if (variable.braced && !Object.hasOwn(values, variable.name)) values[variable.name] = variable.defaultValue;
     }
     else if (Array.isArray(value)) value.forEach(visit);
     else if (value && typeof value === "object") Object.values(value).forEach(visit);
