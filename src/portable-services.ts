@@ -41,7 +41,9 @@ function portable(key: string): ServiceDefinition {
       if (key === "silo" && c.config?.siloImage === "distroless") result.image = SERVICE_IMAGES.silodistroless;
       const upgrade = packageUpgrades[key];
       if (upgrade) {
-        result.build = { context: resolve(c.projectRoot ?? "."), dockerfile_inline: `FROM ${result.image}\nRUN ${upgrade}\n` };
+        const restoreUser = key === "elasticsearch";
+        const dockerfile = `FROM ${result.image}\n${restoreUser ? "USER root\n" : ""}RUN ${upgrade}\n${restoreUser ? "USER 1000:0\n" : ""}`;
+        result.build = { context: resolve(c.projectRoot ?? "."), dockerfile_inline: dockerfile };
         delete result.image;
       }
       if (key === "centrifugo") {
@@ -91,6 +93,7 @@ const packageUpgrades: Record<string, string> = {
   cypress: `${cypressDebian} update && DEBIAN_FRONTEND=noninteractive ${cypressDebian} upgrade -y && rm -rf /var/lib/apt/lists/*`,
   mysql: "microdnf --disablerepo='mysql*' -y upgrade && microdnf clean all",
   seaweedfs: "apk upgrade --no-cache",
+  elasticsearch: "microdnf -y upgrade && microdnf clean all",
 };
 function publicUrlSetting(c: ServiceContext): string {
   const framework = c.config?.framework;

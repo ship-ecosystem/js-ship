@@ -115,6 +115,6 @@ The Redis default is 8.10.3. Back up existing persistent Redis data before
 upgrading from Redis 7 and verify the application against Redis 8 before
 switching over.
 
-Ship builds PostgreSQL, MySQL, Typesense, SeaweedFS and Cypress from their pinned upstream
+Ship builds PostgreSQL, MySQL, Typesense, Elasticsearch, SeaweedFS and Cypress from their pinned upstream
 versions and applies distribution package updates. The rebuilt production service
 images ship in portable releases.
