@@ -50,7 +50,7 @@ test('renaming a database changes injected hosts without moving its volume', () 
     additionalServices: [{ group: 'database', service: 'postgres', name: 'analytics' }] }), '/project', 'development');
   assert.equal(model.services.app.environment.DB_HOST, 'database');
   assert.equal(model.services.app.environment.ANALYTICS_DB_HOST, 'postgres-analytics');
-  assert.deepEqual(model.services.database.volumes, ['postgres_data:/var/lib/postgresql/data']);
+  assert.deepEqual(model.services.database.volumes, ['postgres_data:/var/lib/postgresql']);
   assert.equal(model.services.database.ports, undefined);
   assert.match(model.services.app.ports[0], /^127\.0\.0\.1:/);
 });

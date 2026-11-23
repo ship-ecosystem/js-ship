@@ -37,7 +37,7 @@ test('external PostgreSQL/Redis/MongoDB URLs reach dev, workers and source-free 
   const health = test => ({ test, interval: '1s', timeout: '5s', retries: 60, start_period: '10s' });
   await writeFile(join(providers, 'compose.yaml'), JSON.stringify({ name: `${name}-providers`, services: {
     pg: { image: IMAGES.postgres, environment: { POSTGRES_USER: 'provideradmin', POSTGRES_PASSWORD: admin },
-      volumes: ['pg_data:/var/lib/postgresql/data', './init/postgres.sql:/docker-entrypoint-initdb.d/10-app.sql:ro'],
+      volumes: ['pg_data:/var/lib/postgresql', './init/postgres.sql:/docker-entrypoint-initdb.d/10-app.sql:ro'],
       networks: { shared: { aliases: ['external-postgres'] } }, healthcheck: health(['CMD', 'pg_isready', '-h', '127.0.0.1', '-U', 'provideradmin']) },
     redis: { image: IMAGES.redis, command: ['redis-server', '--aclfile', '/usr/local/etc/redis/users.acl'], environment: { REDISCLI_AUTH: redis },
       volumes: ['./redis.acl:/usr/local/etc/redis/users.acl:ro'], networks: { shared: { aliases: ['external-redis'] } },

@@ -29,7 +29,7 @@ your runtime `MONGODB_URI` without selecting a local MongoDB service. Omit
 `MONGODB_HOST` and matching named host keys to retain the provider URI; see
 [external services](external-services.md).
 
-MongoDB runs from a project-owned image based on `mongo:8.0`. Ship publishes
+MongoDB runs from a project-owned image based on `mongo:8.0.38`. Ship publishes
 `ship/mongodb/` bootstrap/health files. Named instances share this image; each
 has separate data and configuration/key volumes. Release builds/exports the image
 once and boots it on the destination without access to these source files.

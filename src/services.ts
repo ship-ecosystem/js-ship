@@ -26,7 +26,7 @@ export const postgres: ServiceDefinition = {
   key: "postgres", label: "PostgreSQL", group: "database", volumes: ["data"],
   compose: c => ({ image: IMAGES.postgres, environment: {
     POSTGRES_DB: c.setting("DB_NAME", "ship"), POSTGRES_USER: c.setting("DB_USER", "ship"), POSTGRES_PASSWORD: c.credential("DB_PASSWORD", "shipsecret"),
-  }, volumes: [`${c.resourceName}_data:/var/lib/postgresql/data`],
+  }, volumes: [`${c.resourceName}_data:/var/lib/postgresql`],
   healthcheck: healthcheck(["CMD-SHELL", 'pg_isready -h 127.0.0.1 -U "$${POSTGRES_USER}" -d "$${POSTGRES_DB}"']), restart: "unless-stopped" }),
   appEnvironment: c => ({ [`${c.envPrefix}DB_HOST`]: c.serviceName, [`${c.envPrefix}DB_PORT`]: "5432", [`${c.envPrefix}DB_NAME`]: c.setting("DB_NAME", "ship"),
     [`${c.envPrefix}DB_USER`]: c.setting("DB_USER", "ship"), [`${c.envPrefix}DB_PASSWORD`]: c.credential("DB_PASSWORD", "shipsecret") }),

@@ -100,3 +100,16 @@ Centrifugo's development browser URL uses the selected framework's public prefix
 `NEXT_PUBLIC_`, `NUXT_PUBLIC_`, `GATSBY_`, `PUBLIC_` (Astro/SvelteKit) or `VITE_`.
 For production, explicitly configure the final public URL in `build.publicEnv`
 using that framework's build mechanism. Runtime secrets remain server-side.
+
+### Upgrading existing PostgreSQL and Redis volumes
+
+The PostgreSQL default is 18.7 and mounts the named volume at
+`/var/lib/postgresql`. For a project with a PostgreSQL 17 volume, use the
+previous Ship version to take a logical backup, then restore and verify it in a
+fresh PostgreSQL 18 volume before switching the project over. Keep the original
+volume until the migration is verified. PostgreSQL 18 refuses to initialize
+over a PostgreSQL 17 database.
+
+The Redis default is 8.10.3. Back up existing persistent Redis data before
+upgrading from Redis 7 and verify the application against Redis 8 before
+switching over.
