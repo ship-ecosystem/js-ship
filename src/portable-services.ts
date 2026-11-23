@@ -90,6 +90,7 @@ const packageUpgrades: Record<string, string> = {
   typesense: "apt-get update && DEBIAN_FRONTEND=noninteractive apt-get upgrade -y && rm -rf /var/lib/apt/lists/*",
   cypress: `${cypressDebian} update && DEBIAN_FRONTEND=noninteractive ${cypressDebian} upgrade -y && rm -rf /var/lib/apt/lists/*`,
   mysql: "microdnf --disablerepo='mysql*' -y upgrade && microdnf clean all",
+  seaweedfs: "apk upgrade --no-cache",
 };
 function publicUrlSetting(c: ServiceContext): string {
   const framework = c.config?.framework;

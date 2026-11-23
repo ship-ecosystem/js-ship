@@ -5,7 +5,7 @@ export const SERVICE_IMAGES = {
   "sqlserver": "mcr.microsoft.com/mssql/server:2025-CU11-ubuntu-24.04",
   "valkey": "valkey/valkey:9.2.0-alpine",
   "memcached": "memcached:1.6.45-alpine",
-  "seaweedfs": "chrislusf/seaweedfs:4.47",
+  "seaweedfs": "ghcr.io/chrislusf/seaweedfs:4.47",
   "rustfs": "rustfs/rustfs:1.0.6",
   "silo": "pgsty/silo:RELEASE.2026-11-12T00-00-00Z",
   "meilisearch": "getmeili/meilisearch:v1.57.0",
