@@ -50,7 +50,7 @@
     "check:release": "node scripts/spec/check-release.mjs"
   },
   "devDependencies": {
-    "@types/node": "22.20.5",
+    "@types/node": "26.6.6",
     "ajv": "8.20.0",
     "playwright": "1.65.1",
     "typescript": "5.9.3",
