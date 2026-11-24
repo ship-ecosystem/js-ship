@@ -56,7 +56,7 @@ node dist/cli.js --project-directory /absolute/path/to/app init
 node dist/cli.js --project-directory /absolute/path/to/app up
 ```
 
-For versions published to npm, install with `npm install --save-dev --save-exact js-ship@0.1.0`
+For versions published to npm, install with `npm install --save-dev --save-exact @shipecosystem/js-ship@0.1.1`
 and run `npx ship` from the application directory.
 The examples below call that executable `ship`. You can copy `examples/node` to a
 temporary directory for a minimal project.
@@ -204,7 +204,7 @@ shell strings, argv arrays, or objects with `command`, optional `healthcheck` an
 optional `http`. Deploy commands accept strings or argv. No commands run implicitly.
 Processes start in production, not automatically during development.
 
-`name` is a stable identity. Existing js-ship production project names retain the
+`name` is a stable identity. Existing JavaScript Ship production project names retain the
 `-production` suffix; do not change a deployed project's name without migrating its
 volumes. Named instance variables use uppercase prefixes such as `ANALYTICS_`.
 PostgreSQL uses `DB_DATABASE`/`DB_USERNAME`; additional provider settings are documented in

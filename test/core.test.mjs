@@ -157,8 +157,9 @@ test('captured process failures retain diagnostics from both output streams', { 
 });
 test('CLI help/version work outside a project and bad init flags make no changes', { skip: restricted && 'session prohibits child-process execution' }, async t => {
   const root = await project(t);
+  const { version } = JSON.parse(await readFile(resolve('package.json'), 'utf8'));
   assert.match(await run([process.execPath, cli, '--help'], root, { capture: true }), /JavaScript Ship/);
-  assert.match(await run([process.execPath, cli, '--version'], root, { capture: true }), /0\.1\.0/);
+  assert.equal((await run([process.execPath, cli, '--version'], root, { capture: true })).trim(), version);
   await assert.rejects(run([process.execPath, cli, 'init', '--bogus'], root, { capture: true }));
   assert.equal((await readdir(root)).includes('ship'), false);
 });

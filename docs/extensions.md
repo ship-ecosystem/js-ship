@@ -2,7 +2,7 @@
 
 Ship supports project-scoped framework adapters and infrastructure services through
 compiled JavaScript modules. The public `ShipExtension`, `FrameworkAdapter`,
-`ServiceDefinition` and `ExtensionRegistry` types are exported by `js-ship`.
+`ServiceDefinition` and `ExtensionRegistry` types are exported by `@shipecosystem/js-ship`.
 Breaking changes to this planning contract require a new extension API version.
 
 ## Loading an extension
@@ -26,7 +26,7 @@ objects; CommonJS modules use `module.exports`.
 For example, `ship.extensions.mjs` can reuse supported public helpers:
 
 ```js
-import { builtinAdapters, builtinServices } from 'js-ship';
+import { builtinAdapters, builtinServices } from '@shipecosystem/js-ship';
 
 export default {
   apiVersion: 1,
@@ -56,7 +56,7 @@ Use `serviceNames` to rename existing services; an extension is not necessary fo
 renaming. Reusing complex built-in adapters/services may depend on their dedicated
 core template strategy; the simple generic/Redis example above fits API v1.
 
-If an entry module imports `js-ship`, install Ship locally where Node can resolve
+If an entry module imports `@shipecosystem/js-ship`, install Ship locally where Node can resolve
 it; a global CLI installation alone does not provide project imports. For checkout
 testing, install the built tarball. Package extensions use a local bridge module:
 
@@ -184,7 +184,7 @@ images like other source files; core does not execute it during deployment.
 ## Programmatic use
 
 ```js
-import { readConfig, loadExtensions, buildProjectCompose } from 'js-ship';
+import { readConfig, loadExtensions, buildProjectCompose } from '@shipecosystem/js-ship';
 const config = await readConfig(projectRoot);
 const registry = await loadExtensions(projectRoot, config.extensions);
 const model = await buildProjectCompose(config, projectRoot, 'production', 'v1', registry);

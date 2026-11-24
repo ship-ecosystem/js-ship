@@ -1,14 +1,14 @@
 # Publishing JavaScript Ship to npm
 
-Publish `js-ship` from the public `ship-ecosystem/js-ship` repository. Each npm
-version corresponds to a Git tag such as `v0.1.0`. Use exact versions for
+Publish `@shipecosystem/js-ship` from the public `ship-ecosystem/js-ship` repository.
+Each npm version corresponds to a Git tag such as `v0.1.1`. Use exact versions for
 repeatable installs. npm reserves version-shaped names for versions and assigns
 its default `latest` alias on publish. Introduce a changelog for `1.0.0`.
 
 ## Prepare the release
 
-1. Use the intended npm maintainer account with two-factor authentication.
-   Check the registry for ownership and ensure the version is unused.
+1. Use an npm account with two-factor authentication and permission to publish
+   under the `shipecosystem` organization. Check that the version is unused.
 2. Update `package.json` and `package-lock.json` together with
    `npm version VERSION --no-git-tag-version`. Set `private` to `false`.
 3. Run the checks below. Choose a new directory for the tarball output.
@@ -31,18 +31,18 @@ Actions, run `npm-release.yml` with `publish` disabled.
 
 ## First release
 
-If the package name is unclaimed, publish the tested tarball from the maintainer
-account to establish ownership. Use current npm CLI authentication with 2FA.
+Publish from a clean checkout of the tested version tag using an authorized npm
+account. npm runs `prepack` to build the distribution before uploading it.
 
 ```sh
-npm login --registry=https://registry.npmjs.org/
+npm ci
 npm whoami --registry=https://registry.npmjs.org/
-npm publish /tmp/js-ship-release/js-ship.tgz --ignore-scripts --access public --tag latest --registry=https://registry.npmjs.org/
+npm publish --access public --tag latest --registry=https://registry.npmjs.org/
 ```
 
-Verify with `npm view js-ship@VERSION version`, then install that exact version
-with `npm install --save-exact js-ship@VERSION` in a clean project. Confirm
-`npx ship --version` reports the tagged version.
+Verify with `npm view @shipecosystem/js-ship@VERSION version`, then install that
+exact version with `npm install --save-exact @shipecosystem/js-ship@VERSION` in
+a clean project. Confirm `npx ship --version` reports the tagged version.
 
 ## Trusted publishing
 
@@ -52,7 +52,7 @@ direct publication from GitHub Actions with these values:
 
 | Field | Value |
 | --- | --- |
-| Organization | `ship-ecosystem` |
+| GitHub organization | `ship-ecosystem` |
 | Repository | `js-ship` |
 | Workflow filename | `npm-release.yml` |
 | Environment | `npm` |

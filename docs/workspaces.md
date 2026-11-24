@@ -195,7 +195,7 @@ module formats/framework versions and other Docker host platforms need coverage.
 Use the asynchronous project-aware helper for a workspace:
 
 ```js
-import { readConfig, buildProjectCompose } from 'js-ship';
+import { readConfig, buildProjectCompose } from '@shipecosystem/js-ship';
 const config = await readConfig(projectRoot);
 const compose = await buildProjectCompose(config, projectRoot, 'production');
 ```

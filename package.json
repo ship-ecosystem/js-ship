@@ -1,6 +1,6 @@
 {
-  "name": "js-ship",
-  "version": "0.1.0",
+  "name": "@shipecosystem/js-ship",
+  "version": "0.1.1",
   "private": false,
   "description": "Cross-platform Docker development environments and portable releases for JavaScript applications.",
   "repository": {

@@ -2,7 +2,7 @@
 export function validateNpmRelease(pkg, lock, options = {}) {
   const fail = message => { throw new Error(`npm release: ${message}`); };
   const version = pkg.version;
-  if (pkg.name !== 'js-ship') fail('package name must remain js-ship.');
+  if (pkg.name !== '@shipecosystem/js-ship') fail('package name must be @shipecosystem/js-ship.');
   if (typeof version !== 'string' || !/^0\.(0|[1-9]\d*)\.(0|[1-9]\d*)(?![\s\S])/.test(version)) {
     fail('use a 0.x.y version without a suffix.');
   }

@@ -2,7 +2,7 @@
 
 A minimal Node app with an optional connection-check command for PostgreSQL,
 Redis and MongoDB. The clients are dependencies of this example, not runtime
-dependencies of `js-ship`. Run it from a source checkout or copy this directory
+dependencies of `@shipecosystem/js-ship`. Run it from a source checkout or copy this directory
 into a separate application directory; repository examples are not in the npm SDK
 tarball.
 

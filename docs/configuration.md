@@ -58,18 +58,18 @@ Applications connecting to hosted or independently managed databases can follow
 ## Tooling integration
 
 The npm tarball includes the shared configuration schema and exports it as
-`js-ship/schema.json`. Use `shipConfigSchema` for the JavaScript editor profile.
+`@shipecosystem/js-ship/schema.json`. Use `shipConfigSchema` for the JavaScript editor profile.
 Node tooling can resolve its installed file without a network request:
 
 ```js
 import { createRequire } from 'node:module';
-const schemaPath = createRequire(import.meta.url).resolve('js-ship/schema.json');
+const schemaPath = createRequire(import.meta.url).resolve('@shipecosystem/js-ship/schema.json');
 ```
 
 ESM tools can also import the object:
 
 ```js
-import { shipConfigSchema } from 'js-ship';
+import { shipConfigSchema } from '@shipecosystem/js-ship';
 ```
 
 No schema validator is installed as a runtime dependency. A tool that wants to

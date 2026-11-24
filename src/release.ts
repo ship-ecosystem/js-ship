@@ -16,7 +16,8 @@ import { composePrefix } from "./project.js";
 import { composeVariables } from "./environment.js";
 
 // The installed manifest is authoritative for CLI and exported release metadata.
-export const VERSION: string = JSON.parse(readFileSync(new URL("../package.json", import.meta.url), "utf8")).version;
+const packageManifest = JSON.parse(readFileSync(new URL("../package.json", import.meta.url), "utf8")) as { name: string; version: string };
+export const VERSION = packageManifest.version;
 export function validateTag(tag: string): void {
   if (!/^[A-Za-z0-9_][A-Za-z0-9_.-]{0,127}(?![\s\S])/.test(tag)) throw new ConfigError(["Release tag must be a Docker tag (1–128 letters, digits, underscores, dots or hyphens; no leading dot or hyphen)."]);
 }
@@ -164,7 +165,7 @@ export async function assembleRelease(root: string, config: ShipConfig, tag: str
     const deploy = deploymentPlan(config, compose);
     const metadata = {
       format: "ship-release", app: compose.name, tag, createdAt: new Date().toISOString(),
-      builder: { package: "js-ship", version: VERSION }, source: await sourceMetadata(root, runner), platform,
+      builder: { package: packageManifest.name, version: VERSION }, source: await sourceMetadata(root, runner), platform,
       compose: "docker-compose.yml", images, pulledImages, http,
       services: Object.fromEntries(Object.entries(compose.services).map(([name, service]) => [name, {
         role: name === app ? "app" : Object.hasOwn(config.processes, name) ? "process" : "infrastructure", image: service.image,
