@@ -232,5 +232,5 @@ test('readiness requires an actual HTTP response and accepts a framework 404', {
   assert.equal(await waitForStack([], '/tmp', 'app', 3000, async () => JSON.stringify([{ Service: 'app', State: 'running', Publishers: [{ TargetPort: 3000, PublishedPort: port }] }])), port);
 });
 test('process deadlines terminate a blocked command with a recognizable timeout status', { skip: restricted }, async () => {
- await assert.rejects(run([process.execPath, '-e', 'setInterval(()=>{},1000)'], '/tmp', { capture: true, timeoutMs: 100 }), error => error.exitCode === 124 && /timed out/.test(error.message));
+  await assert.rejects(run([process.execPath, '-e', 'setInterval(()=>{},1000)'], tmpdir(), { capture: true, timeoutMs: 100 }), error => error.exitCode === 124 && /timed out/.test(error.message));
 });
