@@ -52,7 +52,7 @@ node dist/cli.js --project-directory /absolute/path/to/app init
 node dist/cli.js --project-directory /absolute/path/to/app up
 ```
 
-For versions published to npm, install with `npm install --save-dev js-ship@next`
+For versions published to npm, install with `npm install --save-dev --save-exact js-ship@0.1.0`
 and run `npx ship` from the application directory.
 The examples below call that executable `ship`. You can copy `examples/node` to a
 temporary directory for a minimal project.

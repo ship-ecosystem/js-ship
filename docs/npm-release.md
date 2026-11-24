@@ -1,8 +1,9 @@
 # Publishing JavaScript Ship to npm
 
-Publish `js-ship` from the public `ship-ecosystem/js-ship` repository. The npm
-workflow publishes plain `0.x.y` versions with the `next` distribution tag.
-Introduce a changelog and choose the stable publishing policy for `1.0.0`.
+Publish `js-ship` from the public `ship-ecosystem/js-ship` repository. Each npm
+version corresponds to a Git tag such as `v0.1.0`. Use exact versions for
+repeatable installs. npm reserves version-shaped names for versions and assigns
+its default `latest` alias on publish. Introduce a changelog for `1.0.0`.
 
 ## Prepare the release
 
@@ -36,11 +37,12 @@ account to establish ownership. Use current npm CLI authentication with 2FA.
 ```sh
 npm login --registry=https://registry.npmjs.org/
 npm whoami --registry=https://registry.npmjs.org/
-npm publish /tmp/js-ship-release/js-ship.tgz --ignore-scripts --access public --tag next --registry=https://registry.npmjs.org/
+npm publish /tmp/js-ship-release/js-ship.tgz --ignore-scripts --access public --tag latest --registry=https://registry.npmjs.org/
 ```
 
-Verify with `npm view js-ship dist-tags` and install `js-ship@next` in a clean
-project. Confirm `npx ship --version` reports the tagged version.
+Verify with `npm view js-ship@VERSION version`, then install that exact version
+with `npm install --save-exact js-ship@VERSION` in a clean project. Confirm
+`npx ship --version` reports the tagged version.
 
 ## Trusted publishing
 

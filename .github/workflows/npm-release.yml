@@ -21,7 +21,7 @@ on:
   workflow_dispatch:
     inputs:
       publish:
-        description: 'Publish a prepared 0.x release to npm next (false only previews)'
+        description: 'Publish the package matching this 0.x Git tag (false only previews)'
         type: boolean
         required: true
         default: false
@@ -91,4 +91,4 @@ jobs:
           name: npm-package
           path: ${{ runner.temp }}/npm-package
       - name: Publish using npm trusted publishing
-        run: npm publish "$RUNNER_TEMP/npm-package/js-ship.tgz" --ignore-scripts --provenance --access public --tag next --registry=https://registry.npmjs.org/
+        run: npm publish "$RUNNER_TEMP/npm-package/js-ship.tgz" --ignore-scripts --provenance --access public --tag latest --registry=https://registry.npmjs.org/

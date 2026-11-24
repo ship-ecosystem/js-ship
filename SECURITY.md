@@ -1,6 +1,6 @@
 # Security policy
 
-Security fixes target the newest release on the `next` distribution tag.
+Security fixes target the latest published version.
 
 ## Reporting
 

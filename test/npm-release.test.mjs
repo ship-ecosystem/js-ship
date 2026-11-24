@@ -6,7 +6,7 @@ function fixture(version = '0.1.0') {
   return {
     pkg: { name: 'js-ship', version, private: false,
       repository: { url: 'git+https://github.com/ship-ecosystem/js-ship.git' },
-      publishConfig: { registry: 'https://registry.npmjs.org/', access: 'public', tag: 'next' } },
+      publishConfig: { registry: 'https://registry.npmjs.org/', access: 'public', tag: 'latest' } },
     lock: { name: 'js-ship', version, packages: { '': { name: 'js-ship', version } } },
     options: { publish: true, ref: `refs/tags/v${version}`, repository: 'ship-ecosystem/js-ship', repositoryPrivate: 'false' }
   };
@@ -15,7 +15,7 @@ const check = f => validateNpmRelease(f.pkg, f.lock, f.options);
 
 test('npm preview accepts a private checkout without registry identity', () => {
   const f = fixture(); f.pkg.private = true; f.options = {};
-  assert.deepEqual(check(f), { name: 'js-ship', version: '0.1.0', tag: 'next', publish: false });
+  assert.deepEqual(check(f), { name: 'js-ship', version: '0.1.0', tag: 'latest', publish: false });
 });
 test('npm publishing requires a public repository, matching tag and explicit metadata', () => {
   assert.equal(check(fixture()).publish, true);
@@ -24,7 +24,7 @@ test('npm publishing requires a public repository, matching tag and explicit met
     f => { f.options.repositoryPrivate = 'true'; }, f => { delete f.options.repositoryPrivate; },
     f => { f.options.repository = 'other/js-ship'; }, f => { f.options.ref = 'refs/heads/main'; },
     f => { f.options.ref = 'refs/tags/v0.1.1'; },
-    f => { f.pkg.publishConfig.tag = 'latest'; },
+    f => { f.pkg.publishConfig.tag = 'next'; },
     f => { f.pkg.publishConfig.registry = 'https://other.example/'; },
     f => { f.pkg.repository.url = 'git+https://github.com/other/js-ship.git'; },
     f => { f.lock.version = '0.0.1'; }, f => { f.lock.packages[''].version = '0.0.1'; },

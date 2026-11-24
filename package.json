@@ -59,7 +59,7 @@
   "publishConfig": {
     "registry": "https://registry.npmjs.org/",
     "access": "public",
-    "tag": "next"
+    "tag": "latest"
   },
   "dependencies": {
     "@clack/prompts": "1.9.0"

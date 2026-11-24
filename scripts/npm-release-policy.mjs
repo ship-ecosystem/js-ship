@@ -10,8 +10,8 @@ export function validateNpmRelease(pkg, lock, options = {}) {
     fail('package.json and both lockfile version records must agree.');
   }
   if (pkg.repository?.url !== 'git+https://github.com/ship-ecosystem/js-ship.git') fail('repository metadata must match ship-ecosystem/js-ship.');
-  if (pkg.publishConfig?.registry !== 'https://registry.npmjs.org/' || pkg.publishConfig?.access !== 'public' || pkg.publishConfig?.tag !== 'next') {
-    fail('publishConfig must use the public npm registry and next dist-tag.');
+  if (pkg.publishConfig?.registry !== 'https://registry.npmjs.org/' || pkg.publishConfig?.access !== 'public' || pkg.publishConfig?.tag !== 'latest') {
+    fail('publishConfig must use the public npm registry and default latest dist-tag.');
   }
   if ((options.publish || options.candidate) && pkg.private !== false) {
     fail('private must be explicitly false for publication.');
@@ -20,5 +20,5 @@ export function validateNpmRelease(pkg, lock, options = {}) {
     if (options.ref !== `refs/tags/v${version}`) fail('dispatch the publish workflow on the exact v<package-version> tag.');
     if (options.repository !== 'ship-ecosystem/js-ship' || options.repositoryPrivate !== 'false') fail('publication requires the public ship-ecosystem/js-ship repository.');
   }
-  return { name: pkg.name, version, tag: 'next', publish: options.publish === true };
+  return { name: pkg.name, version, tag: 'latest', publish: options.publish === true };
 }
