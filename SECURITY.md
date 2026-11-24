@@ -1,24 +1,18 @@
 # Security policy
 
-JavaScript Ship is in private development. No public release is supported yet.
-During public prerelease testing, fixes will target the latest prerelease; older
-prereleases may require an upgrade.
+Security fixes target the newest release on the `next` distribution tag.
 
 ## Reporting
 
-Before public testing, maintainers must enable GitHub private vulnerability
-reporting. Use the repository's **Security → Report a vulnerability** flow when
-available: https://github.com/ship-ecosystem/js-ship/security/advisories/new.
-Until that is available, use an existing private maintainer contact channel.
-Include reproduction steps and affected versions; keep credentials and exploit
-payloads out of public issue reports.
+Use [GitHub private vulnerability reporting](https://github.com/ship-ecosystem/js-ship/security/advisories/new)
+or an existing private maintainer contact channel. Include affected versions
+and steps to reproduce. Share sensitive material through the private report.
 
 ## Runtime and image policy
 
 The host CLI and generated Node builds enforce reviewed per-major Node minimums.
-The initial November 17, 2026 baseline is Node 22.23.5, 24.22.3 or 26.13.1, based on
-Node's November 11 security releases. Only stable releases in the supported majors
-are accepted. See [runtime maintenance](docs/runtime-maintenance.md).
+The minimum versions are Node 22.23.5, 24.22.3, and 26.13.1 in their respective
+majors. See [runtime maintenance](docs/runtime-maintenance.md).
 
 Default Node, Nginx, PostgreSQL, Redis and MongoDB parents are pinned to
 multi-platform image digests. Updates require a reviewed catalog change and

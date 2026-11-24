@@ -7,12 +7,8 @@ The packages share the `ship.json` vocabulary, container workflow and
 [`ship-release` contract](https://github.com/ship-ecosystem/spec/blob/main/docs/release-contract.md).
 Language adapters supply the differences in runtime, build output and console tools.
 
-**Private development build; npm publication and final release CI are pending.**
-The intended install is `npm i js-ship` (`npm i js-ship@next` for public prereleases).
-The package is currently `private: true` at `0.1.0-dev.0`; these are future registry
-commands, not a claim that a public package is available. Use the checkout below.
-See [release preparation](docs/npm-release.md), [verification](docs/verification.md)
-and [ecosystem compatibility](docs/ecosystem-parity.md) for evidence and limits.
+See [ecosystem compatibility](docs/ecosystem-parity.md) for the shared
+configuration and release contracts.
 
 ## Contents
 
@@ -56,7 +52,8 @@ node dist/cli.js --project-directory /absolute/path/to/app init
 node dist/cli.js --project-directory /absolute/path/to/app up
 ```
 
-After npm publication, use `npx ship` in an application that installed `js-ship`.
+For versions published to npm, install with `npm install --save-dev js-ship@next`
+and run `npx ship` from the application directory.
 The examples below call that executable `ship`. You can copy `examples/node` to a
 temporary directory for a minimal project.
 
@@ -314,8 +311,8 @@ See [recovery](docs/recovery.md) and [MongoDB operations](docs/mongodb.md).
 
 Adapters bind to `0.0.0.0` inside containers and publish HTTP on host loopback.
 Vite adapters configure HMR through the published port; app-owned servers must
-honor `HOST`/`PORT`. Framework-specific watching and browser coverage are documented
-in [frameworks](docs/frameworks.md) and [verification](docs/verification.md).
+honor `HOST`/`PORT`. See [frameworks](docs/frameworks.md) for supported modes and
+[testing](docs/verification.md) for browser checks.
 
 Development uses the host UID/GID on Linux by default (`hostUser: false` opts out).
 Node processes run unprivileged. Host node_modules is replaced by container-managed
@@ -385,16 +382,8 @@ npm run test:transfer
 npm run check:release -- /path/to/dist/ship/TAG
 ```
 
-These are local commands. Docker/browser suites build or pull images and clean up
-uniquely named fixtures. Browser setup and tested versions are in
-[verification](docs/verification.md). Keep schema/image generation current and add
-meaningful boundary or live checks for behavior changes.
-
-**GitHub Actions remain disabled to conserve the free-account budget.** Do not
-push, enable or dispatch CI until explicitly authorized for pre-release checks.
-Publishing, visibility changes, npm trusted-publisher setup and tags are separate
-release steps. See [roadmap](docs/roadmap.md), [release readiness](docs/alpha-readiness.md)
-and [changelog](CHANGELOG.md). Report security issues as described in [SECURITY.md](SECURITY.md).
+See [testing](docs/verification.md) for suite setup, [npm releases](docs/npm-release.md)
+for publication, and [the security policy](SECURITY.md) for reporting vulnerabilities.
 
 ## License
 

@@ -1,10 +1,10 @@
 // npm package releases are separate from the application's Docker release command.
-export function validateNpmRelease(pkg, lock, changelog, options = {}) {
+export function validateNpmRelease(pkg, lock, options = {}) {
   const fail = message => { throw new Error(`npm release: ${message}`); };
   const version = pkg.version;
   if (pkg.name !== 'js-ship') fail('package name must remain js-ship.');
-  if (typeof version !== 'string' || !/^(0|[1-9]\d*)\.(0|[1-9]\d*)\.(0|[1-9]\d*)-(dev|alpha|beta|rc)\.(0|[1-9]\d*)(?![\s\S])/.test(version)) {
-    fail('use an explicit dev, alpha, beta or rc prerelease version. Stable publishing is not enabled.');
+  if (typeof version !== 'string' || !/^0\.(0|[1-9]\d*)\.(0|[1-9]\d*)(?![\s\S])/.test(version)) {
+    fail('use a 0.x.y version without a suffix.');
   }
   if (lock.name !== pkg.name || lock.version !== version || lock.packages?.['']?.name !== pkg.name || lock.packages?.['']?.version !== version) {
     fail('package.json and both lockfile version records must agree.');
@@ -13,11 +13,8 @@ export function validateNpmRelease(pkg, lock, changelog, options = {}) {
   if (pkg.publishConfig?.registry !== 'https://registry.npmjs.org/' || pkg.publishConfig?.access !== 'public' || pkg.publishConfig?.tag !== 'next') {
     fail('publishConfig must use the public npm registry and next dist-tag.');
   }
-  if (!changelog.split(/\r?\n/).includes('## Unreleased')) fail('keep an Unreleased changelog section.');
-  if (options.publish || options.candidate) {
-    if (pkg.private !== false) fail('private must be explicitly false for publication.');
-    if (version.includes('-dev.')) fail('development snapshots cannot be published.');
-    if (!changelog.split(/\r?\n/).includes(`## ${version}`)) fail('add a changelog section for the exact release version.');
+  if ((options.publish || options.candidate) && pkg.private !== false) {
+    fail('private must be explicitly false for publication.');
   }
   if (options.publish) {
     if (options.ref !== `refs/tags/v${version}`) fail('dispatch the publish workflow on the exact v<package-version> tag.');

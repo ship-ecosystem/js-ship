@@ -21,12 +21,11 @@ function run(args, cwd) {
 try {
   const pkg = JSON.parse(await readFile(join(root, 'package.json'), 'utf8'));
   const packed = JSON.parse(run([npm, 'pack', '--ignore-scripts', '--json', '--pack-destination', work], root))[0];
-  const allowedRoots = new Set(['dist', 'templates', 'schema', 'docs', 'package.json', 'README.md', 'LICENSE.md', 'SECURITY.md', 'CHANGELOG.md']);
+  const allowedRoots = new Set(['dist', 'templates', 'schema', 'docs', 'package.json', 'README.md', 'LICENSE.md', 'SECURITY.md']);
   for (const entry of packed.files) {
     assert.ok(allowedRoots.has(entry.path.split('/')[0]), `Unexpected package file: ${entry.path}`);
     assert.doesNotMatch(entry.path, /(?:^|\/)(?:\.env(?:\.|$)|\.npmrc$|\.ship-secrets(?:\/|$))/);
   }
-  assert.ok(packed.files.some(entry => entry.path === 'CHANGELOG.md'));
   const consumer = join(work, 'consumer'), app = join(work, 'app'), site = join(work, 'gatsby'), workspace = join(work, 'workspace');
   await mkdir(consumer);
   await writeFile(join(consumer, 'package.json'), '{"private":true,"type":"module"}');

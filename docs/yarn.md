@@ -82,11 +82,9 @@ configuration is rejected so one root configuration drives the install.
 Keep `.yarnrc.yml`, committed plugins and patch files free of credentials: these
 are application source files and can be copied into Node images. `build.npmrc`
 is rejected for Yarn because modern Yarn does not consume that npm secret as its
-registry configuration. Yarn private-registry authentication is not implemented
-in this milestone; do not work around that by embedding tokens in configuration,
-lockfiles, URLs or `build.publicEnv`. Runtime values and explicit build-command
+registry configuration. Keep Yarn registry tokens out of tracked configuration,
+lockfiles, URLs, and `build.publicEnv`. Runtime values and explicit build-command
 secrets retain their existing [environment boundaries](environment.md).
 
-Representative Yarn versions and local Docker results are recorded in
-[verification](verification.md). This support does not establish every framework,
-plugin, native dependency, operating system or historical Yarn version combination.
+The [Docker test suites](verification.md) exercise representative Yarn and
+framework combinations.

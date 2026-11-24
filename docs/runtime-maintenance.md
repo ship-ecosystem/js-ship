@@ -2,7 +2,7 @@
 
 ## Reviewed Node baseline
 
-The initial policy, reviewed November 17, 2026, requires:
+Ship requires these minimum versions:
 
 | Node major | Minimum stable version |
 | --- | --- |
@@ -10,7 +10,6 @@ The initial policy, reviewed November 17, 2026, requires:
 | 24 | 24.22.3 |
 | 26 | 26.13.1 |
 
-These are the [November 11 security releases](https://nodejs.org/en/blog/vulnerability/november-2026-security-releases/).
 Later stable patch/minor releases within these majors are accepted on the host.
 Unsupported majors, prereleases and versions below the floor are rejected before
 CLI commands run. Package `engines.node` declares the corresponding ranges.
@@ -58,9 +57,8 @@ Action updates, plus daily image-catalog checks. Container major-version updates
 are excluded from routine proposals; MongoDB minor-family upgrades are also excluded. There is no automatic merge or deployment.
 Digest changes and database image refreshes still require review.
 
-This configuration becomes active when committed to the repository's default
-branch, subject to repository/organization Dependabot settings. Preparing the file
-locally does not activate the service. See [GitHub's supported ecosystems](https://docs.github.com/en/code-security/reference/supply-chain-security/supported-ecosystems-and-repositories)
+Update checks use the configuration on the default branch and follow the
+repository and organization settings. See [GitHub's supported ecosystems](https://docs.github.com/en/code-security/reference/supply-chain-security/supported-ecosystems-and-repositories)
 and [Dependabot configuration](https://docs.github.com/en/code-security/reference/supply-chain-security/dependabot-options-reference).
 
 Quality CI checks the generated artifacts and runs `npm audit --audit-level=high`

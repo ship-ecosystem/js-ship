@@ -7,8 +7,7 @@ schema, release schema and service environment contract. The npm export
 `ship init` generates a JavaScript editor profile in the project with additional
 framework, service and runtime validation. Run `node scripts/check-spec.mjs PATH_TO_SPEC` locally
 to check drift. JavaScript-specific properties are registered in the shared spec.
-Changes to the local spec repository must be published separately before remote
-editors or other ecosystem packages can consume them.
+Update the shared spec before updating copies in the producers.
 
 Processes accept commands or `{ command, healthcheck?, http? }` definitions. HTTP
 metadata describes a real container port, role, optional healthy path and public

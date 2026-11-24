@@ -10,7 +10,7 @@ import { run } from '../dist/process.js';
 test('a staged npm version drives CLI, help and application-release provenance without source edits', { skip: process.env.SHIP_RESTRICTED_TEST === '1' }, async t => {
   const root = await mkdtemp(join(tmpdir(), 'ship-candidate-version-'));
   t.after(() => rm(root, { recursive: true, force: true }));
-  const sdk = join(root, 'sdk'), app = join(root, 'app'), version = '0.1.0-alpha.0';
+  const sdk = join(root, 'sdk'), app = join(root, 'app'), version = '0.1.1';
   await mkdir(sdk);
   await cp(resolve('dist'), join(sdk, 'dist'), { recursive: true });
   await cp(resolve('templates'), join(sdk, 'templates'), { recursive: true });

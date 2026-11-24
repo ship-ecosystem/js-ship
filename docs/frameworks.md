@@ -2,7 +2,7 @@
 
 All fourteen requested adapters are implemented, plus `generic`. This is an early
 implementation with unit/planning/output-file tests and representative live Docker
-builds for all fourteen frameworks. See the [tested versions and limits](verification.md).
+builds for the supported frameworks. See the [test suites](verification.md).
 Chromium checks also verify component/CSS HMR for Vite React/Vue/Svelte through
 published ports, including subpaths, without reloading or resetting an unchanged
 parent's counter. Browser HMR for the other adapters remains unverified. Support refers to the
@@ -69,11 +69,9 @@ Nuxt static mode uses a `generate` package script that runs `nuxt generate` and
 serves `.output/public/`. TanStack Start static output is not implemented. Both
 adapters currently require Ship `basePath: '/'`.
 
-The Nuxt 4.6.4 live fixture pins `npm@11.20.0`. Its initial npm 12.2.2 install
-failed with `EALLOWREMOTE` on a bundled `@parcel/watcher-wasm` registry tarball,
-before framework startup. Ship preserves npm's install policies; this dependency
-graph has not been verified with npm 12. Use matching package-manager and lockfile
-pins and consult [verification notes](verification.md) for the tested combination.
+For Nuxt 4.6.4, use the verified `npm@11.20.0` pin and a matching lockfile.
+Ship follows npm's dependency install policies, including restrictions on
+dependencies that reference registry tarball URLs.
 
 ## SvelteKit
 

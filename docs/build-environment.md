@@ -79,9 +79,7 @@ registry secret mount.
 Public variable declarations belong to the builder stage, after dependency
 installation. Changing a public value rebuilds the application; adding or removing
 variable names or secret settings changes the templates. Review custom edits and
-run `ship init --force` to refresh them. Existing format-4/5/6/7 projects need this
-refresh once; current templates use format 9. Build-secret mounts were introduced
-in format 5.
+run `ship init --force` to refresh them before building with new settings.
 
 Secret contents are not Docker build arguments or persistent image environment
 variables. BuildKit secret changes do **not** invalidate cached steps. If a changed
@@ -92,8 +90,8 @@ relevant cache explicitly, for example:
 ship build --no-cache
 ```
 
-This rebuilds project-owned images without using cached build steps. Shared/cache-export
-policies are not configured by Ship in this milestone.
+This rebuilds project-owned images without using cached build steps. Configure
+shared caches and cache exports in your Docker builder or CI.
 
 `ship init` adds `.ship-secrets/` and `.npmrc` to Git ignore rules. Build-context
 rules exclude `.ship-secrets` and `.npmrc`/`.env` files at every depth,

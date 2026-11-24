@@ -5,7 +5,6 @@ if (args.length > 1 || (args.length === 1 && !['--publish', '--candidate'].inclu
 const result = validateNpmRelease(
   JSON.parse(await readFile(new URL('../package.json', import.meta.url), 'utf8')),
   JSON.parse(await readFile(new URL('../package-lock.json', import.meta.url), 'utf8')),
-  await readFile(new URL('../CHANGELOG.md', import.meta.url), 'utf8'),
   { candidate: args[0] === '--candidate', publish: args[0] === '--publish', ref: process.env.GITHUB_REF,
     repository: process.env.GITHUB_REPOSITORY, repositoryPrivate: process.env.SHIP_REPOSITORY_PRIVATE }
 );

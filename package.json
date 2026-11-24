@@ -1,7 +1,7 @@
 {
   "name": "js-ship",
-  "version": "0.1.0-dev.0",
-  "private": true,
+  "version": "0.1.0",
+  "private": false,
   "description": "Cross-platform Docker development environments and portable releases for JavaScript applications.",
   "repository": {
     "type": "git",
@@ -33,8 +33,7 @@
     "docs",
     "README.md",
     "LICENSE.md",
-    "SECURITY.md",
-    "CHANGELOG.md"
+    "SECURITY.md"
   ],
   "scripts": {
     "build": "node scripts/write-images.mjs && tsc -p tsconfig.json && node scripts/write-schema.mjs",
