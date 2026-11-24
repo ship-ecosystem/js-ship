@@ -4,7 +4,7 @@ FROM mariadb:13.0 AS mariadb
 FROM mcr.microsoft.com/mssql/server:2025-CU11-ubuntu-24.04 AS sqlserver
 FROM valkey/valkey:9.2.0-alpine AS valkey
 FROM memcached:1.6.45-alpine AS memcached
-FROM ghcr.io/chrislusf/seaweedfs:4.47 AS seaweedfs
+FROM ghcr.io/chrislusf/seaweedfs:4.55 AS seaweedfs
 FROM rustfs/rustfs:1.0.6 AS rustfs
 FROM pgsty/silo:RELEASE.2026-11-12T00-00-00Z AS silo
 FROM getmeili/meilisearch:v1.57.0 AS meilisearch
