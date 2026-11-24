@@ -1,5 +1,9 @@
 # JavaScript Ship
 
+[![Quality and npm packaging](https://github.com/ship-ecosystem/js-ship/actions/workflows/quality.yml/badge.svg?branch=main&event=push)](https://github.com/ship-ecosystem/js-ship/actions/workflows/quality.yml?query=branch%3Amain+event%3Apush)
+[![Docker integration](https://github.com/ship-ecosystem/js-ship/actions/workflows/docker.yml/badge.svg?branch=main&event=push)](https://github.com/ship-ecosystem/js-ship/actions/workflows/docker.yml?query=branch%3Amain+event%3Apush)
+[![Release transfer](https://github.com/ship-ecosystem/js-ship/actions/workflows/release-transfer.yml/badge.svg?branch=main&event=push)](https://github.com/ship-ecosystem/js-ship/actions/workflows/release-transfer.yml?query=branch%3Amain+event%3Apush)
+
 Docker development environments and portable production releases for JavaScript
 and TypeScript. Part of the [Ship ecosystem](https://github.com/ship-ecosystem),
 alongside [PHP Ship](https://github.com/ship-ecosystem/php-ship) and Python Ship.

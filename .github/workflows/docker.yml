@@ -3,15 +3,6 @@ name: Docker integration
 on:
   push:
     branches: [main]
-    paths:
-      - 'src/**'
-      - 'templates/**'
-      - 'images/**'
-      - 'test/**'
-      - 'scripts/**'
-      - 'examples/**'
-      - 'package*.json'
-      - '.github/workflows/docker.yml'
   pull_request:
     paths:
       - 'src/**'

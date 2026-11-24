@@ -3,14 +3,6 @@ name: Release transfer between runners
 on:
   push:
     branches: [main]
-    paths:
-      - 'src/**'
-      - 'templates/**'
-      - 'images/**'
-      - 'examples/**'
-      - 'scripts/**'
-      - 'package*.json'
-      - '.github/workflows/release-transfer.yml'
   pull_request:
     paths:
       - 'src/**'

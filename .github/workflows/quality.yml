@@ -35,7 +35,6 @@ jobs:
           node-version: ${{ matrix.node }}
           check-latest: true
           cache: npm
-      # Prepared only: workflows remain server-disabled until release authorization.
       - name: Read the shared ecosystem contract
         uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
         with:
